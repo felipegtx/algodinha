@@ -51,7 +51,7 @@ var AlgoDinha = function() {
         }
     }
 
-    function trataNegociacao(ordem) { 
+    function trataNegociacao(ordem, parcial) { 
         blinktradeWs.balance().then(function(extrato) { 
             
             
@@ -83,13 +83,14 @@ var AlgoDinha = function() {
 
             }
             
-
-            params.aguardandoOrdem = false;
+            if (!parcial) { 
+                params.aguardandoOrdem = false;
+            }
         });
     }
     
     function onPartial(ordem) {
-        trataNegociacao(ordem);
+        trataNegociacao(ordem, true);
     }
     
     function onExecution(ordem) {
@@ -213,6 +214,7 @@ var AlgoDinha = function() {
         var melhorOfertaVendaAtual = o.asks[0];
     
         pln("STATUS ATUAL DA CARTEIRA: ");
+        pln("    - Saldo atual: R$ " + params.saldoBRL.toFixed(2));
         pln("    - Valor médio: R$ " + valorMedioDaCarteira.toFixed(3));
         pln("    - Volume total: " + obterVolumeTotal());
         pln("    - Target: R$ " + valorVenda.toFixed(2));
