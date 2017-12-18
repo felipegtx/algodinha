@@ -31,13 +31,15 @@ var AlgoDinha = function() {
         aguardandoOrdem : false,
         comprado : false,
         subindo : false,
+        interromperExecucao : false,
 
         /// Parâmetros da execução
         valorMaximoCompra : 70000,
-        maximoGastos : 2500,
+        maximoGastos : 2000,
         valorOrdem : 100,
-        lucroEsperado : 0.1,
-        dataBase : "2017-12-18 23:00:00"
+        lucroEsperado : 0.3,
+        dataBase : "2017-12-18 20:11:00",
+        saldoBRL : 0
         
     };
        
@@ -51,6 +53,8 @@ var AlgoDinha = function() {
 
     function trataNegociacao(ordem) { 
         blinktradeWs.balance().then(function(extrato) { 
+            
+            
             if (ordem.Side == "1") { 
                 
                 var saldoAnterior = obterVolumeTotal();
@@ -60,13 +64,26 @@ var AlgoDinha = function() {
                     
                     var executado = ordem.LastShares / 1e8;
                     disponivel = (disponivel + executado) - (saldoAnterior + executado);
-
+                    
                 }
-
+                
                 adicionarCompra((ordem.LastPx / 1e8), disponivel);
             } else { 
-                console.log("Vendeu", ordem);
+
+                console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
+                
+                var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato["4"].BRL) / 1e8);
+                if (novoSaldoBRL <= params.saldoBRL) { 
+                    
+                    console.error("Saldo diminuiu", novoSaldoBRL, params.saldoBRL);
+                    params.interromperExecucao = true;
+
+                }
+                params.saldoBRL = novoSaldoBRL;
+                
             }
+            
+
             params.aguardandoOrdem = false;
         });
     }
@@ -174,12 +191,17 @@ var AlgoDinha = function() {
     
     function trataOrdens() { 
         
+        if (params.interromperExecucao) { 
+            pln("Execução interrompida".erro);
+            return;
+        }
+
         pln("----------------------------------------------------------------------------------------------------------------".titulo);
         pln((new Date().toLocaleString() + " - Valor máximo para compra: R$ " + params.valorMaximoCompra + ", Máximo de gastos: R$ " + params.maximoGastos + " - Valor investido: R$ " + obterValorTotalGasto() + ".").titulo);
         pln("");
         
         if (params.aguardandoOrdem) { 
-            pln("Aguardando execução da última ordem");
+            pln("Aguardando execução da última ordem".aviso);
             pln("");
             return;
         }
@@ -325,7 +347,7 @@ var AlgoDinha = function() {
                 symbol: "BTCBRL"
             }).then(
                 function(ok){ 
-                    console.warn("Ordem colocada com sucesso!".aviso, ok[0]);
+                    console.warn("Ordem colocada com sucesso!".aviso, ok);
                     okDel(ok);
                     pln(""); pln(""); pln("");
                     pln(""); pln(""); pln("");
@@ -394,7 +416,7 @@ var AlgoDinha = function() {
 
                     for(i in carteiraTemporaria) { 
                         if (carteiraTemporaria[i].volume > 0) { 
-                            adicionarCompra(carteiraTemporaria[i].valor, carteiraTemporaria[i].volume);
+                            adicionarCompra(round(carteiraTemporaria[i].valor, 2), round(carteiraTemporaria[i].volume, 8));
                         }
                     }
                     
@@ -417,7 +439,13 @@ var AlgoDinha = function() {
                 
                 return blinktradeWs.login({ username: params.security.user, password: params.security.password });
             
-            }).then(function(logged) {
+            })
+            .then(function() { 
+                blinktradeWs.balance().then(function(extrato) { 
+                    params.saldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato["4"].BRL) / 1e8);
+                });
+            })
+            .then(function(logged) {
                 
                 atualizarCarteira(dataBase, function() { 
 
