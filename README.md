@@ -1,6 +1,6 @@
 # Algodinha
 
-Algoritmo de negociação automatizada para Bitcoin - via Foxbit / Blinktrade.
+Algoritmo de negociação automatizada para Bitcoin - via Foxbit / [Blinktrade](https://github.com/blinktrade/BlinkTradeJS).
 
 ## Sobre
 
@@ -41,6 +41,21 @@ lucroEsperado : 0.06,
 
 De fato, como regra geral, estes são os únicos parâmetros que você precisaria alterar para realizar a execução.
 
+#### Carteira
+
+Na versão atual você precisa informar a data da sua última venda para que o robô consiga coletar as informações de sua carteira ativa. Para tanto, basta acessar sua conta na corretora encontrar qual a data/horário em que isto aconteceu. 
+
+> Se for sua primeira operando em renda variável, você não deveria estar usando o robô. *#ficaDica*
+
+Por exemplo, no seguinte caso:
+
+![image](https://user-images.githubusercontent.com/1022404/34125435-5e516aa0-e41d-11e7-8ffc-3e4fc8e0a797.png)
+
+A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horário.
+```
+dataBase : "2017-12-18 12:22:03"
+```
+
 ## Executando
 
 Para executar, basta utilizar o seguinte comando:
@@ -49,17 +64,5 @@ Para executar, basta utilizar o seguinte comando:
 node algodinha.js
 ```
 
-### Executar utilizando sua carteira
 
-Na versão atual você precisa informar a data da sua última venda para que o robô consiga coletar as informações de sua carteira ativa. Para tanto, basta acessar sua conta na corretora encontrar qual a data/horário em que isto aconteceu. 
-
-Se for sua primeira operação, você não deveria estar usando o robô. #ficaDica.
-
-Por exemplo, no seguinte caso:
-![image](https://user-images.githubusercontent.com/1022404/34125435-5e516aa0-e41d-11e7-8ffc-3e4fc8e0a797.png)
-
-A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horário.
-```
-dataBase : "2017-12-18 12:22:03"
-```
 
