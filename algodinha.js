@@ -7,7 +7,6 @@
 
 var AlgoDinha = function() { 
     
-    /// WebSocket
     var BlinkTradeWS = require("blinktrade").BlinkTradeWS,
         blinktradeWs = new BlinkTradeWS( { prod: true }),
         colors = require('colors');
@@ -23,6 +22,7 @@ var AlgoDinha = function() {
 
     var params = {
 
+        /// Estado da aplicação
         security : require("./api.json"), 
         compras : [],
         ultimaMelhorOferta : null,
@@ -32,10 +32,12 @@ var AlgoDinha = function() {
         comprado : false,
         subindo : false,
 
+        /// Parâmetros da execução
         valorMaximoCompra : 70000,
         maximoGastos : 2500,
         valorOrdem : 100,
-        lucroEsperado : 0.06
+        lucroEsperado : 0.06,
+        dataBase : "2017-12-18 12:22:03"
         
     };
        
@@ -400,8 +402,10 @@ var AlgoDinha = function() {
     }
   
     var publico = { 
-        iniciar : function(ultimaExecucao) { 
+        iniciar : function() { 
             pln("Iniciando...".titulo);
+
+            var dataBase = new Date(params.dataBase);
                        
             /// Conecta na Exchange
             blinktradeWs.connect().then(function() {
@@ -410,7 +414,7 @@ var AlgoDinha = function() {
             
             }).then(function(logged) {
                 
-                atualizarCarteira(ultimaExecucao, function() { 
+                atualizarCarteira(dataBase, function() { 
 
                     enviarBatida();
                     
@@ -421,9 +425,6 @@ var AlgoDinha = function() {
                     blinktradeWs.subscribeOrderbook(["BTCBRL"])
                         .on("OB:NEW_ORDER", atualizaBook)
                         .on("OB:UPDATE_ORDER", atualizaBook)
-                        // .on("OB:TRADE_NEW", atualizaBook)
-                        // .on("OB:DELETE_ORDER", apagaBook)
-                        // .on("OB:DELETE_ORDERS_THRU", apagaBook)
                         .then(function(fullBook) { 
                 
                             var dadosDoBook = fullBook.MDFullGrp.BTCBRL;
@@ -448,10 +449,8 @@ var AlgoDinha = function() {
 }
 
 
-new AlgoDinha()
-    
-    /// Adicionar 2 horas de FUSO
-    .iniciar(new Date("2017-12-18 12:22:03"));
+/// Adicionar 2 horas de FUSO
+new AlgoDinha().iniciar();
 
 
 
