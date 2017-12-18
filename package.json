@@ -1,0 +1,17 @@
+{
+  "name": "algodinha",
+  "version": "0.0.1",
+  "description": "Robô de negociação para Foxbit.exchange",
+  "main": "algodinha.js",
+  "keywords": [
+    "blinktrade",
+    "foxbit",
+    "node"
+  ],
+  "author": "Felipe Teixeira",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "blinktrade": "0.0.15",
+    "colors": "^1.1.2"
+  }
+}
