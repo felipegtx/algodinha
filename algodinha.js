@@ -124,6 +124,11 @@ var AlgoDinha = function() {
         return 0;
     }
     
+    function round(value, decimals) {
+        /// NASTY! mas funfa.
+        return Number(Math.round(value + "e" + decimals) + "e-" + decimals);
+    }
+
     function obterVolumeTotal() { 
         
         if (params.compras && params.compras.length > 0) { 
@@ -131,7 +136,7 @@ var AlgoDinha = function() {
             for (var i = 0; i < params.compras.length; i++) { 
                 volumeTotal += params.compras[i].volume;
             }
-            return volumeTotal;
+            return round(volumeTotal, 8);
         }
         
         return 0;
@@ -248,7 +253,7 @@ var AlgoDinha = function() {
     
                     
                     /// Vamos tentar diminuir o custo médio comprando mais abaixo do preço de entrada
-                    var thresholdNovaCompra = (obterValorMenorCompra() - 50);
+                    var thresholdNovaCompra = (obterValorMenorCompra() - 100);
                     
                     if (melhorOfertaVendaAtual > valorMedioDaCarteira) { 
                         pln("O mercado está subindo, e ele tem talento pra isso!! Melhor oferta de venda atual: R$ " + melhorOfertaVendaAtual + ".");
