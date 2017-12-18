@@ -36,8 +36,8 @@ var AlgoDinha = function() {
         valorMaximoCompra : 70000,
         maximoGastos : 2500,
         valorOrdem : 100,
-        lucroEsperado : 0.06,
-        dataBase : "2017-12-18 12:22:03"
+        lucroEsperado : 0.1,
+        dataBase : "2017-12-18 23:00:00"
         
     };
        
