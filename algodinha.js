@@ -456,16 +456,16 @@ var AlgoDinha = function() {
         var melhorOfertaCompraAtual = o.bids[0];
         var melhorOfertaVendaAtual = o.asks[0];
     
-        pln("STATUS ATUAL DA CARTEIRA: ");
+        pln("STATUS ATUAL DA CARTEIRA:");
         pln("    - Saldo atual: R$ " + params.saldoBRL.toFixed(2));
         pln("    - Valor médio: R$ " + valorMedioDaCarteira.toFixed(3));
-        pln("    - Volume total: " + obterVolumeTotal());
+        pln("    - Volume total: BTC " + obterVolumeTotal());
         pln("    - Target: R$ " + valorVenda.toFixed(2));
         pln("");
-        pln("STATUS ATUAL DO MERCADO");
+        pln("STATUS ATUAL DO MERCADO:");
         pln("     - Compra: " + melhorOfertaCompraAtual.toFixed(3));
         pln("     - Venda: " + melhorOfertaVendaAtual.toFixed(3));
-        pln("     - Aguardando uma melhora de " + (((valorVenda - melhorOfertaCompraAtual)/valorVenda)*100).toFixed(2) + "%");
+        pln("     - Delta de saída em: " + (((valorVenda - melhorOfertaCompraAtual)/valorVenda)*100).toFixed(2) + "%");
         pln("");
         
         /// Caso já tenhamos uma ordem executada
@@ -648,10 +648,4 @@ var AlgoDinha = function() {
     return publico;
 }
 
-/// Adicionar 2 horas de FUSO
 new AlgoDinha().iniciar();
-
-
-
-
-
