@@ -33,15 +33,34 @@ var AlgoDinha = function() {
         comprado : false,
         subindo : false,
         interromperExecucao : false,
+        saldoBRL : 0,
 
+        //////////////////////////////////////////////////////////////////////////
         /// Parâmetros da execução
+        //////////////////////////////////////////////////////////////////////////
+
+        /// Valor máximo para compra de BTC
         valorMaximoCompra : 70000,
+
+        /// Valor máximo que o robô está autorizado a gastar
         maximoGastos : 2000,
+
+        /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 200,
+
+        /// Threshold que define o momento de rebalanceamento do valor de saída
+        ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
+        ///       decidir a melhor hora para sair
         thresholdRecompraEmBRL : 50,
+
+        /// Lucro % esperado
         lucroEsperado : 0.01,
-        dataBase : "2017-12-19 00:00:00",
-        saldoBRL : 0
+
+        //// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
+        //// opte por iniciar vendido
+        dataBase : "2017-12-19 00:00:00"
+        
+        //////////////////////////////////////////////////////////////////////////
         
     };
 
