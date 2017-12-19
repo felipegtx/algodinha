@@ -1,7 +1,6 @@
 
 /// TODO: 
 ///     - Detectar queda de conexão (internet fora do ar);
-///     - Enviar email para relatar trades e erros;
 ///     - Rastrear ponto de inversão para entrar comprado;
 ///     - Obter o valor real gasto;
 
@@ -9,8 +8,9 @@ var AlgoDinha = function() {
     
     var BlinkTradeWS = require("blinktrade").BlinkTradeWS,
         blinktradeWs = new BlinkTradeWS( { prod: true }),
-        colors = require('colors');
-    
+        colors = require("colors"),
+        gmailSend = require("gmail-send");
+
     colors.setTheme({
         erro: ["red", "underline"],
         aviso: ["yellow", "bold"],
@@ -24,6 +24,7 @@ var AlgoDinha = function() {
 
         /// Estado da aplicação
         security : require("./api.json"), 
+        email : require("./mail.json"), 
         compras : [],
         ultimaMelhorOferta : null,
         book : { bids:[], asks:[] },
@@ -43,6 +44,20 @@ var AlgoDinha = function() {
         saldoBRL : 0
         
     };
+
+    function enviaEmail(assunto, texto) { 
+        gmailSend()({
+            user: params.email.email,
+            pass: params.email.appPass,
+            to:   params.email.destino,
+            subject: assunto,
+            text:    texto
+        }, function (err, res) {
+            if (err) { 
+                console.log("Erro ao enviar email:", err, assunto, texto);
+            }
+        });
+    }
        
     function pln(str, warn) { 
         if (!warn) { 
@@ -55,7 +70,7 @@ var AlgoDinha = function() {
     function trataNegociacao(ordem, parcial) { 
         blinktradeWs.balance().then(function(extrato) { 
             
-            
+            var tipoExecucao = parcial ? "parcialmente" : "totalmente";
             if (ordem.Side == "1") { 
                 
                 var saldoAnterior = obterVolumeTotal();
@@ -68,18 +83,24 @@ var AlgoDinha = function() {
                     
                 }
                 
+                enviaEmail("Ordem de compra " + tipoExecucao + "executada!", "Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
                 adicionarCompra((ordem.LastPx / 1e8), disponivel);
-            } else { 
 
-                console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
+            } else { 
                 
                 var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato["4"].BRL) / 1e8);
+                
+                console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
+                enviaEmail("Ordem de venda " + tipoExecucao + "executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
+
                 if (novoSaldoBRL <= params.saldoBRL) { 
                     
+                    enviaEmail("Problema na execução", "Saldo diminuiu de " + params.saldoBRL + " para " + novoSaldoBRL);
                     console.error("Saldo diminuiu", novoSaldoBRL, params.saldoBRL);
                     params.interromperExecucao = true;
 
                 }
+
                 params.saldoBRL = novoSaldoBRL;
 
             }
@@ -362,6 +383,10 @@ var AlgoDinha = function() {
                 symbol: "BTCBRL"
             }).then(
                 function(ok){ 
+
+                    var tipoOrdem = tipo == "1" ? "compra" : "venda";
+                    enviaEmail("Ordem de " + tipoOrdem + " colocada com sucesso!", "Valor: R$ " + preco + " - Volume: " + volume);
+
                     console.warn("Ordem colocada com sucesso!".aviso, ok);
                     okDel(ok);
                     pln(""); pln(""); pln("");
@@ -369,6 +394,7 @@ var AlgoDinha = function() {
                 }
             ).catch(
                 function (nok) { 
+
                     console.error("Falha ao enviar ordem".erro, nok); 
                     nokDel(nok); 
                 }
