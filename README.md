@@ -10,7 +10,7 @@ O robô executa a estratégia de [Scalper](https://www.daytraderpro.com.br/blog/
 
 ## Instalando
 
-Baixe o fonte ou clone o Repo e baixe as dependêcias usando:
+Baixe o fonte ou realiza um clone deste Repo, em seguida baixe as dependêcias do projeto por meio do comando:
 
 ```javascript
 npm install
