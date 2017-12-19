@@ -1,7 +1,4 @@
 
-/// TODO: 
-///     - Refazer saldo na venda parcial (alterar também lógica do método obterValorTotalGasto())
-
 var AlgoDinha = function() { 
     
     var BlinkTradeWS = require("blinktrade").BlinkTradeWS,
@@ -48,10 +45,10 @@ var AlgoDinha = function() {
         valorMinimoCompra : 66900,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 1225 + 400,
+        maximoGastos : 3000,
 
         /// Valor das ordens de compra enviadas pelo robô
-        valorOrdem : 25,
+        valorOrdem : 10,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
         ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
@@ -123,6 +120,21 @@ var AlgoDinha = function() {
                 
                 console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
                 enviaEmail("Ordem de venda " + tipoExecucao + " executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
+                
+                params.comprado = (obterVolumeTotal() > 0);
+                if (!params.comprado) { 
+                    
+                    /// Remove todas as compras
+                    limparCompras();
+
+                    /// Atualiza data de inicio do processamento
+                    var agora = new Date();
+                    agora.setHours(agora.getHours() - 2);
+                    parametrosDefault.dataBase = agora;
+                    params.dataBase = agora;
+
+                }
+                params.subindo = false;
                 
             }
             
@@ -358,9 +370,9 @@ var AlgoDinha = function() {
                     }
                     
                     params.offline = false;
-                    console.log(" <3  ".grey);
+                    console.log(colors.grey.italic(" <3  "));
                     blinktradeWs.heartbeat(function() { 
-                        console.log(" <3 ".gray);
+                        console.log(" <3 ".grey);
                         params.heartbeatEnviado = false;
                     })
                     .catch(function(E) {
@@ -449,23 +461,36 @@ var AlgoDinha = function() {
             pln("");
             return;
         }
-    
+
         var o = params.book;
-        var valorVenda = obterValorVenda();
-        var valorMedioDaCarteira = obterValorMedioCompras();
-        var melhorOfertaCompraAtual = o.bids[0];
-        var melhorOfertaVendaAtual = o.asks[0];
+        if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0]) { 
+            pln("Deu ruim!!".erro);
+            pln("");
+            return;
+        }
     
+        var valorVenda = obterValorVenda(),
+            valorMedioDaCarteira = obterValorVendaPara(obterValorMedioCompras()),
+            melhorOfertaCompraAtual = o.bids[0],
+            melhorOfertaVendaAtual = o.asks[0],
+            volumeTotal = obterVolumeTotal(),
+            saldoBRL = params.saldoBRL,
+            saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual),
+            saldoBrutoBRL = (saldoBRL + saldoBTCBRL);
+
         pln("STATUS ATUAL DA CARTEIRA:");
-        pln("    - Saldo atual: R$ " + params.saldoBRL.toFixed(2));
-        pln("    - Valor médio: R$ " + valorMedioDaCarteira.toFixed(3));
-        pln("    - Volume total: BTC " + obterVolumeTotal());
-        pln("    - Target: R$ " + valorVenda.toFixed(2));
+        pln("    - Saldo atual: R$ " + saldoBRL.toFixed(2));
+        pln("    - Saldo BTC em BRL: R$ " + saldoBTCBRL.toFixed(2));
+        pln("    - Saldo total atual (Bruto): R$ " + saldoBrutoBRL.toFixed(2));
+        pln("    - Saldo total atual (Líquido): R$ " + (saldoBrutoBRL - (saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2));
+        pln("    - Valor médio das compras: R$ " + valorMedioDaCarteira.toFixed(3));
+        pln("    - Volume total: BTC " + volumeTotal);
+        pln("    - Target de venda: R$ " + valorVenda.toFixed(2));
+        pln("    - Delta de saída em: " + (((valorVenda - melhorOfertaCompraAtual)/valorVenda)*100).toFixed(2) + "%");
         pln("");
         pln("STATUS ATUAL DO MERCADO:");
-        pln("     - Compra: " + melhorOfertaCompraAtual.toFixed(3));
-        pln("     - Venda: " + melhorOfertaVendaAtual.toFixed(3));
-        pln("     - Delta de saída em: " + (((valorVenda - melhorOfertaCompraAtual)/valorVenda)*100).toFixed(2) + "%");
+        pln("    - Compra: R$ " + melhorOfertaCompraAtual.toFixed(3));
+        pln("    - Venda: R$ " + melhorOfertaVendaAtual.toFixed(3));
         pln("");
         
         /// Caso já tenhamos uma ordem executada
@@ -479,8 +504,6 @@ var AlgoDinha = function() {
                 adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, function(r) { 
                     if (r) { 
                         limparCompras(melhorOfertaCompraAtual);
-                        params.comprado = false;
-                        params.subindo = false;
                     }
                 }, function() { });
 
@@ -505,10 +528,7 @@ var AlgoDinha = function() {
                         /// Vende tudo!!!
                         adicionarOrdemVenda(melhorOfertaCompraAtual, obterVolumeTotal(), function(r) { 
                             if (r) { 
-                                limparCompras();
-                                params.comprado = false;
-                                params.subindo = false;
-                                console.log("FINALIZADO!!!!!!!!!");
+                                console.log("FINALIZADO!");
                             }
                         }, function() { });
     
@@ -524,7 +544,7 @@ var AlgoDinha = function() {
     
             } else { 
     
-                if (obterValorTotalGasto() >= params.maximoGastos) { 
+                if ((saldoBRL < params.valorOrdem) || (obterValorTotalGasto() >= params.maximoGastos)) { 
     
                     /// Gastamos tudo...
                     pln(" - Gastamos todo o orçamento. Agora tem que rezar.");
@@ -617,8 +637,8 @@ var AlgoDinha = function() {
 
                     
                     blinktradeWs.executionReport()
-                    .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
-                    .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
+                        .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
+                        .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
                     
                     blinktradeWs.subscribeOrderbook([params.simboloBTC])
                         .on("OB:NEW_ORDER", atualizaBook)
