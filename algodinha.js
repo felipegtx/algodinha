@@ -449,49 +449,22 @@ var AlgoDinha = function() {
                 publico.iniciar();
             });
     }
-    
+
     function trataOrdens() { 
-        
-        pln("----------------------------------------------------------------------------------------------------------------".titulo);
-        pln((new Date().toLocaleString() + " - Valor máximo para compra: R$ " + params.valorMaximoCompra + ", Máximo de gastos: R$ " + params.maximoGastos + " - Valor investido: R$ " + obterValorTotalGasto() + ".").titulo);
-        pln("");
-        
-        if (params.aguardandoOrdem) { 
-            pln("Aguardando execução da última ordem".aviso);
-            pln("");
-            return;
-        }
 
-        var o = params.book;
-        if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0]) { 
-            pln("Deu ruim!!".erro);
-            pln("");
+        var estadoExecucao = publico.status().pln();
+        if (!estadoExecucao.ok) { 
             return;
         }
     
-        var valorVenda = obterValorVenda(),
-            valorMedioDaCarteira = obterValorVendaPara(obterValorMedioCompras()),
-            melhorOfertaCompraAtual = o.bids[0],
-            melhorOfertaVendaAtual = o.asks[0],
-            volumeTotal = obterVolumeTotal(),
-            saldoBRL = params.saldoBRL,
-            saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual),
-            saldoBrutoBRL = (saldoBRL + saldoBTCBRL);
-
-        pln("STATUS ATUAL DA CARTEIRA:");
-        pln("    - Saldo atual: R$ " + saldoBRL.toFixed(2));
-        pln("    - Saldo BTC em BRL: R$ " + saldoBTCBRL.toFixed(2));
-        pln("    - Saldo total atual (Bruto): R$ " + saldoBrutoBRL.toFixed(2));
-        pln("    - Saldo total atual (Líquido): R$ " + (saldoBrutoBRL - (saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2));
-        pln("    - Valor médio das compras: R$ " + valorMedioDaCarteira.toFixed(3));
-        pln("    - Volume total: BTC " + volumeTotal);
-        pln("    - Target de venda: R$ " + valorVenda.toFixed(2));
-        pln("    - Delta de saída em: " + (((valorVenda - melhorOfertaCompraAtual)/valorVenda)*100).toFixed(2) + "%");
-        pln("");
-        pln("STATUS ATUAL DO MERCADO:");
-        pln("    - Compra: R$ " + melhorOfertaCompraAtual.toFixed(3));
-        pln("    - Venda: R$ " + melhorOfertaVendaAtual.toFixed(3));
-        pln("");
+        var valorVenda = estadoExecucao.valorVenda,
+            valorMedioDaCarteira = estadoExecucao.valorMedioDaCarteira,
+            melhorOfertaCompraAtual = estadoExecucao.melhorOfertaCompraAtual,
+            melhorOfertaVendaAtual = estadoExecucao.melhorOfertaVendaAtual,
+            volumeTotal = estadoExecucao.volumeTotal,
+            saldoBRL = estadoExecucao.saldoBRL,
+            saldoBTCBRL = estadoExecucao.saldoBTCBRL,
+            saldoBrutoBRL = estadoExecucao.saldoBrutoBRL;
         
         /// Caso já tenhamos uma ordem executada
         if (params.comprado) { 
@@ -611,15 +584,112 @@ var AlgoDinha = function() {
             }
         }
     }
+
+    function StatusAplicacao() { 
+        var base = {
+            ok : true, 
+            detalhes: [],
+            add : function(detalhe, erro) { 
+                base.detalhes.push(detalhe);
+                if (erro) { 
+                    this.ok = false;
+                }
+                return base;
+            },
+            html : function() { 
+                var txt = "<html>";
+                for (var i=0; i < base.detalhes.length; i++) { 
+                    txt += base.detalhes[i] + "<br>";
+                }
+                txt += "</html>";
+                return txt;
+            }, 
+            pln :function() { 
+                for (var i=0; i < base.detalhes.length; i++) { 
+                    if (base.ok) { 
+                        pln(base.detalhes[i]);
+                    } else { 
+                        pln(base.detalhes[i].erro);
+                    }
+                }
+                return base;
+            },
+            ext : function(obj) { 
+                for (i in obj) { 
+                    base[i] = obj[i];
+                }
+                return base;
+            }
+        };
+
+        return base;
+    }
   
     var publico = { 
+        status : function(hideHeader) { 
+            
+            var resultado = new StatusAplicacao();
+
+            try { 
+                
+                if (!hideHeader) { 
+                    resultado
+                        .add("----------------------------------------------------------------------------------------------------------------".titulo)
+                        .add((new Date().toLocaleString() + " - Valor máximo para compra: R$ " + params.valorMaximoCompra + ", Máximo de gastos: R$ " + params.maximoGastos + " - Valor investido: R$ " + obterValorTotalGasto() + ".").titulo)
+                        .add("");
+                }
+
+                if (params.aguardandoOrdem) { 
+                    return resultado.add("Aguardando execução da última ordem".aviso, true).add("");
+                }
+
+                var o = params.book;
+                if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0]) { 
+                    return resultado.add("Deu ruim".erro, true).add("");
+                }
+
+                var volumeTotal = obterVolumeTotal(),
+                    melhorOfertaCompraAtual = o.bids[0],
+                    saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual);
+                resultado
+                    .ext({
+                        valorVenda : obterValorVenda(),
+                        valorMedioDaCarteira : obterValorVendaPara(obterValorMedioCompras()),
+                        melhorOfertaCompraAtual : melhorOfertaCompraAtual,
+                        melhorOfertaVendaAtual : o.asks[0],
+                        volumeTotal : volumeTotal,
+                        saldoBRL : params.saldoBRL,
+                        saldoBTCBRL : saldoBTCBRL,
+                        saldoBrutoBRL : (params.saldoBRL + saldoBTCBRL)
+                    })
+                    .add("STATUS ATUAL DA CARTEIRA:")
+                    .add("    - Saldo atual: R$ " + resultado.saldoBRL.toFixed(2))
+                    .add("    - Saldo BTC em BRL: R$ " + resultado.saldoBTCBRL.toFixed(2))
+                    .add("    - Saldo total atual (Bruto): R$ " + resultado.saldoBrutoBRL.toFixed(2))
+                    .add("    - Saldo total atual (Líquido): R$ " + (resultado.saldoBrutoBRL - (resultado.saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2))
+                    .add("    - Valor médio das compras: R$ " + resultado.valorMedioDaCarteira.toFixed(3))
+                    .add("    - Volume total: BTC " + resultado.volumeTotal)
+                    .add("    - Target de venda: R$ " + resultado.valorVenda.toFixed(2))
+                    .add("    - Delta de saída em: " + (((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2) + "%")
+                    .add("")
+                    .add("STATUS ATUAL DO MERCADO:")
+                    .add("    - Compra: R$ " + resultado.melhorOfertaCompraAtual.toFixed(3))
+                    .add("    - Venda: R$ " + resultado.melhorOfertaVendaAtual.toFixed(3))
+                    .add("");
+            
+            } catch (Exc) { 
+                return resultado.add(Exc, false);
+            }
+
+            return resultado;
+        },
         iniciar : function() { 
             pln("Iniciando...".titulo);
 
             params = clone(parametrosDefault);
 
             var dataBase = new Date(params.dataBase);
-                       
+
             /// Conecta na Exchange
             blinktradeWs.connect().then(function() {
                 
@@ -668,4 +738,17 @@ var AlgoDinha = function() {
     return publico;
 }
 
-new AlgoDinha().iniciar();
+var algodinha = new AlgoDinha();
+
+var http = require("http");
+http.createServer(function (request, response) {
+    response.writeHead(200, 
+    { 
+        "Content-Type": "text/html; charset=utf-8", 
+        "Access-Control-Allow-Origin" : "*",
+        "Cache-Control": "no-cache"
+    });
+    response.end(algodinha.status(true).html());
+}).listen(1337);
+
+algodinha.iniciar();
