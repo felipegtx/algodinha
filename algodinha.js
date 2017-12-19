@@ -59,7 +59,7 @@ var AlgoDinha = function() {
         //// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
         //// opte por iniciar vendido
         dataBase : "2017-12-19 00:00:00"
-        
+
         //////////////////////////////////////////////////////////////////////////
         
     };
@@ -69,7 +69,7 @@ var AlgoDinha = function() {
             user: params.email.email,
             pass: params.email.appPass,
             to:   params.email.destino,
-            subject: assunto,
+            subject: "[Algodinha] " + assunto,
             text:    texto
         }, function (err, res) {
             if (err) { 
@@ -102,7 +102,7 @@ var AlgoDinha = function() {
                     
                 }
                 
-                enviaEmail("Ordem de compra " + tipoExecucao + "executada!", "Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
+                enviaEmail("Ordem de compra " + tipoExecucao + " executada!", "Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
                 adicionarCompra((ordem.LastPx / 1e8), disponivel);
 
             } else { 
@@ -110,7 +110,7 @@ var AlgoDinha = function() {
                 var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato["4"].BRL) / 1e8);
                 
                 console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
-                enviaEmail("Ordem de venda " + tipoExecucao + "executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
+                enviaEmail("Ordem de venda " + tipoExecucao + " executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
 
                 if (novoSaldoBRL <= params.saldoBRL) { 
                     
