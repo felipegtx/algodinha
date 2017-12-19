@@ -108,7 +108,7 @@ Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
   
 ## Contribuição
 
-Contribuições em forma de Bitcoin e/ou PRs são muito bem vindas! Peço apenas que antes de trabalar/enviar uma PR entre em contato comigo para alinharmos as expectativas e approach da implementação.
+Contribuições em forma de Bitcoin e/ou PRs são muito bem vindas! Peço apenas que antes de trabalhar/enviar uma PR entre em contato comigo para alinharmos as expectativas e approach da implementação.
 
 **Envie contribuições em BTC para:** 18DGLBkigjyKdezHQtiWWkg9EmBLrqQtPF
 
