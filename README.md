@@ -43,8 +43,8 @@ O robô está programado para enviar email - utilizando GMail - relatando o envi
 ### Parametrização
 Você deve também parametrizar a execução considerando os limites e riscos que você está disposto a correr com a ferramenta. Os principais parâmetros que coordenam a proporção risco/lucro são os seguintes:
 
-```
- /// Valor máximo para compra de BTC
+```javascript
+/// Valor máximo para compra de BTC
 valorMaximoCompra : 70000,
 
 /// Valor máximo que o robô está autorizado a gastar
