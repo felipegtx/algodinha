@@ -53,7 +53,7 @@ Por exemplo, no seguinte caso:
 
 A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horário.
 ```
-dataBase : "2017-12-18 12:22:03"
+dataBase : "2017-12-18 12:22:02"
 ```
 
 ## Executando

@@ -27,7 +27,7 @@ var AlgoDinha = function() {
         compras : [],
         ultimaMelhorOferta : null,
         book : { bids:[], asks:[] },
-        taxaDaCorretora : 0.05,
+        taxaDaCorretora : 0.005,
         aguardandoOrdem : false,
         comprado : false,
         subindo : false,
@@ -36,9 +36,9 @@ var AlgoDinha = function() {
         /// Parâmetros da execução
         valorMaximoCompra : 70000,
         maximoGastos : 2000,
-        valorOrdem : 100,
-        lucroEsperado : 0.3,
-        dataBase : "2017-12-18 20:11:00",
+        valorOrdem : 10,
+        lucroEsperado : 0.01,
+        dataBase : "2017-12-19 00:00:00",
         saldoBRL : 0
         
     };
@@ -115,8 +115,7 @@ var AlgoDinha = function() {
     
     function obterValorVenda() { 
         var valorMedio = obterValorMedioCompras();
-        var baseCalculo = (obterVolumeTotal() * valorMedio) * ((params.taxaDaCorretora * 2) + params.lucroEsperado);
-        return valorMedio + baseCalculo;
+        return valorMedio + ((valorMedio * params.taxaDaCorretora) + (valorMedio * params.lucroEsperado));;
     }
     
     function obterValorTotalGasto() { 
@@ -159,6 +158,19 @@ var AlgoDinha = function() {
         
         return 0;
     }
+
+    function obterVolumeTotalReal() { 
+        
+        if (params.compras && params.compras.length > 0) { 
+            var volumeTotal = 0;
+            for (var i = 0; i < params.compras.length; i++) { 
+                volumeTotal += params.compras[i].volumeOriginal;
+            }
+            return round(volumeTotal, 8);
+        }
+        
+        return 0;
+    }
     
     function obterValorMenorCompra() { 
         if (params.compras && params.compras.length > 0) { 
@@ -173,9 +185,9 @@ var AlgoDinha = function() {
         return 0;    
     }
     
-    function adicionarCompra(valor, volume) { 
+    function adicionarCompra(valor, volume, volumeOriginal) { 
         params.comprado = true;
-        params.compras.push({valor:valor, volume:volume});
+        params.compras.push({valor:valor, volume:volume, volumeOriginal:volumeOriginal});
     }
     
     function adicionarOrdemVenda(preco, volume, okDel, nokDel) { 
@@ -418,7 +430,7 @@ var AlgoDinha = function() {
 
                     for(i in carteiraTemporaria) { 
                         if (carteiraTemporaria[i].volume > 0) { 
-                            adicionarCompra(round(carteiraTemporaria[i].valor, 2), round(carteiraTemporaria[i].volume, 8));
+                            adicionarCompra(round(carteiraTemporaria[i].valor, 2), round(carteiraTemporaria[i].volume, 8), carteiraTemporaria[i].volumeOriginal);
                         }
                     }
                     
