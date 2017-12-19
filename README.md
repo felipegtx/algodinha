@@ -44,11 +44,26 @@ O robô está programado para enviar email - utilizando GMail - relatando o envi
 Você deve também parametrizar a execução considerando os limites e riscos que você está disposto a correr com a ferramenta. Os principais parâmetros que coordenam a proporção risco/lucro são os seguintes:
 
 ```
+ /// Valor máximo para compra de BTC
 valorMaximoCompra : 70000,
-maximoGastos : 2500,
-valorOrdem : 100,
-lucroEsperado : 0.06,
-thresholdRecompraEmBRL : 50
+
+/// Valor máximo que o robô está autorizado a gastar
+maximoGastos : 2000,
+
+/// Valor das ordens de compra enviadas pelo robô
+valorOrdem : 200,
+
+/// Threshold que define o momento de rebalanceamento do valor de saída
+///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
+///       decidir a melhor hora para sair
+thresholdRecompraEmBRL : 50,
+
+/// Lucro % esperado
+lucroEsperado : 0.01,
+
+//// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
+//// opte por iniciar vendido
+dataBase : "2017-12-19 00:00:00"
 ```
 
 De fato, como regra geral, estes são os únicos parâmetros que você precisaria alterar para realizar a execução.
