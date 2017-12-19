@@ -29,6 +29,17 @@ Antes de executar o robô você precisa gerar suas credenciais de acesso [aqui](
 }
 ```
 
+### Email
+O robô está programado para enviar email - utilizando GMail - relatando o envio e execução de ordens. Para que esta infra funcione você precisa apenas criar um arquivo chamado `mail.json` na raiz da biblioteca utilizando o seguinte formato:
+
+```javascript
+{
+    "email" : "seu endereço de email do Gmail",
+    "appPass" : "senha do gmail ou senha de app caso vc possua 2FA habilitado",
+    "destino" : "endereço de destino"
+}
+```
+
 ### Parametrização
 Você deve também parametrizar a execução considerando os limites e riscos que você está disposto a correr com a ferramenta. Os principais parâmetros que coordenam a proporção risco/lucro são os seguintes:
 
