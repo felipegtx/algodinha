@@ -37,6 +37,7 @@ valorMaximoCompra : 70000,
 maximoGastos : 2500,
 valorOrdem : 100,
 lucroEsperado : 0.06,
+thresholdRecompraEmBRL : 50
 ```
 
 De fato, como regra geral, estes são os únicos parâmetros que você precisaria alterar para realizar a execução.
