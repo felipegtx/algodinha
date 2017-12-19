@@ -6,7 +6,7 @@ Algoritmo de negociação automatizada para Bitcoin - via Foxbit / [Blinktrade](
 
 O robô executa a estratégia de [Scalper](https://www.daytraderpro.com.br/blog/o-que-e-scalping/), visando pequenos lucros no maior número de ordens possíveis.
 
-Execute literalmente por sua conta e risco. 
+:exclamation: Execute literalmente por sua conta e risco. :exclamation:
 
 ## Instalando
 
@@ -19,7 +19,9 @@ npm install
 ## Configurando
 
 ### Segurança
-Antes de executar o robô você precisa gerar suas credenciais de acesso [aqui](https://foxbit.exchange/#api). Estes dados devem ser salvos em um arquivo chamado `api.json` na raiz da biblioteca utilizando o seguinte formato:
+Antes de executar o robô você precisa gerar suas credenciais de acesso na plataforma FoxBit. Você pode realizar isso clicando [aqui](https://foxbit.exchange/#api). 
+
+Estes dados devem ser salvos em um arquivo chamado `api.json` na raiz da biblioteca utilizando o seguinte formato:
 
 ```javascript
 { 
@@ -30,7 +32,9 @@ Antes de executar o robô você precisa gerar suas credenciais de acesso [aqui](
 ```
 
 ### Email
-O robô está programado para enviar email - utilizando GMail - relatando o envio e execução de ordens. Para que esta infra funcione você precisa apenas criar um arquivo chamado `mail.json` na raiz da biblioteca utilizando o seguinte formato:
+O robô está programado para enviar email - utilizando GMail - relatando o envio e execução de ordens. 
+
+Para que esta infra funcione você precisa apenas criar um arquivo chamado `mail.json` na raiz da biblioteca utilizando o seguinte formato:
 
 ```javascript
 {
