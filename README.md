@@ -6,7 +6,7 @@ Algoritmo de negociação automatizada para Bitcoin - via Foxbit / [Blinktrade](
 
 O robô executa a estratégia de [Scalper](https://www.daytraderpro.com.br/blog/o-que-e-scalping/), visando pequenos lucros no maior número de ordens possíveis.
 
-:exclamation: Execute literalmente por sua conta e risco. :exclamation:
+*IMPORTANTE:* Não me responsabilizo por qualquer tipo de prejuizo causado pelo uso desta ferramenta. :exclamation:
 
 ## Instalando
 
