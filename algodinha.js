@@ -36,7 +36,8 @@ var AlgoDinha = function() {
         /// Parâmetros da execução
         valorMaximoCompra : 70000,
         maximoGastos : 2000,
-        valorOrdem : 10,
+        valorOrdem : 200,
+        thresholdRecompraEmBRL : 50,
         lucroEsperado : 0.01,
         dataBase : "2017-12-19 00:00:00",
         saldoBRL : 0
@@ -289,7 +290,7 @@ var AlgoDinha = function() {
     
                     
                     /// Vamos tentar diminuir o custo médio comprando mais abaixo do preço de entrada
-                    var thresholdNovaCompra = (obterValorMenorCompra() - params.valorOrdem);
+                    var thresholdNovaCompra = (obterValorMenorCompra() - params.thresholdRecompraEmBRL);
                     
                     if (melhorOfertaVendaAtual > valorMedioDaCarteira) { 
                         pln("O mercado está subindo, e ele tem talento pra isso!! Melhor oferta de venda atual: R$ " + melhorOfertaVendaAtual + ".");
