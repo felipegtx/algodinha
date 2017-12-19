@@ -96,4 +96,19 @@ node algodinha.js
 ```
 
 
+## Roadmap
+
+Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
+
+ - **Refazer saldo na venda parcial** - Quando o algoritmo decidir executar uma venda parcial, é preciso considerar este déficit de volume e melhor no saldo. Precisamos alterar também lógica do método `obterValorTotalGasto()` para refletir isso de forma dinâmica.
+ 
+ ### Problemas conhecidos
+ 
+  - **Demora na inicialização:** Em alguns momentos o snapshot do book pode demorar muito para chegar. É uma característica da infra da Blinktrade. Se isso acontecer com você (observável pela demora em iniciar o robô), basta cancelar a execução e executar novamente.
+  
+## Contribuição
+
+Contribuições em forma de Bitcoin e/ou PRs são muito bem vindas! Peço apenas que antes de trabalar/enviar uma PR entre em contato comigo para alinharmos as expectativas e approach da implementação.
+
+**Envie contribuições em BTC para:** 18DGLBkigjyKdezHQtiWWkg9EmBLrqQtPF
 
