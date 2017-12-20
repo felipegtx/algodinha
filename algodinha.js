@@ -28,7 +28,7 @@ var AlgoDinha = function() {
         comprado : false,
         subindo : false,
         saldoBRL : 0,
-        profundidadeBuscaCarteira : 1000,
+        profundidadeBuscaCarteira : 3000,
         offline : false,
         heartbeatEnviado : false,
         simboloBTC : "BTCBRL",
@@ -216,7 +216,13 @@ var AlgoDinha = function() {
     
     function round(value, decimals) {
         /// NASTY! mas funfa.
-        return Number(Math.round(value + "e" + decimals) + "e-" + decimals);
+        var result = Number(Math.round(value + "e" + decimals) + "e-" + decimals);
+
+        if (isNaN(result)) { 
+            pln(("Valor não pode ser arredondado: " + value).erro);
+        }
+
+        return result;
     }
 
     function obterVolumeTotal() { 
@@ -263,6 +269,9 @@ var AlgoDinha = function() {
     }
     
     function adicionarCompra(valor, volume, volumeOriginal, atualizaUltimaCompra) { 
+        if (!volume) {
+            return;
+        }
         params.comprado = true;
         if (atualizaUltimaCompra) { 
             params.ultimaCompra.realizada = true;
@@ -436,6 +445,10 @@ var AlgoDinha = function() {
 
                     if (new Date(item.Created) > dataBase) { 
 
+                        if (!item.Amount || isNaN(item.Amount) || (item.Amount == 0)) { 
+                            continue;
+                        }
+
                         /// T - Trade
                         /// TF - Trade Fee
                         if (!carteiraTemporaria[item.Reference]) { 
@@ -464,7 +477,7 @@ var AlgoDinha = function() {
                     if ((tamanhoPagina == 0) || (novaProfundidade <= 0)) { 
                         
                         for(i in carteiraTemporaria) { 
-                            if (carteiraTemporaria[i].volume > 0) { 
+                            if (carteiraTemporaria.hasOwnProperty(i) && (carteiraTemporaria[i].volume > 0)) { 
                                 adicionarCompra(round(carteiraTemporaria[i].valor, 2), round(carteiraTemporaria[i].volume, 8), carteiraTemporaria[i].volumeOriginal);
                             }
                         }
@@ -680,62 +693,25 @@ var AlgoDinha = function() {
                 return a.valor == b.valor ? a.volume < b.volume ? -1 : 1 : a.valor < b.valor ? -1 : 1;
             });
 
-            var conteudo = {};
-            for (var i=0; i < compras.length; i++) { 
-                var compra = params.compras[i];
-                if (!conteudo[compra.valor]) { 
-                    conteudo[compra.valor] = 0;
-                }
-                conteudo[compra.valor] += compra.volume;
-            }
-
-            var labelsArr = [],
-                resultado = {
+            var resultado = {
+                    labels: [],
                     datasets : [{
                         label : ["Distrib. Volume/Valor"],
                         fill: false,
                         backgroundColor: 'rgb(54, 162, 235)',
                         borderColor: 'rgb(54, 162, 235)',
                         data : []
-                    },
-                    {
-                        label: ["Saída"],
-                        fill: false,
-                        labels : [ "Valor saída" ],
-                        pointBackgroundColor : ['rgb(255, 99, 132)', 'rgb(75, 192, 192)'],
-                        data: []
                     }]
                 };
 
-            for (valorCompra in conteudo) {
-                var volume = conteudo[valorCompra].toFixed(8);
-                labelsArr.push(valorCompra);
+            for (var i=0; i < compras.length; i++) {
+                var compra = compras[i];
+                var valorCompra = compra.valor.toFixed("2");
+                var volume = compra.volume.toFixed(8);
+                resultado.labels.push(valorCompra);
                 resultado.datasets[0].data.push({ x: valorCompra, y: volume});
             }
-
-            // var o = params.book,
-            //     volumeTotal = obterVolumeTotal(),
-            //     mediaVolume = obterVolumeMedioCompras(),
-            //     valorVenda = obterValorVenda();
-
-            // if (o && o.bids && o.bids[0] && mediaVolume > 0) { 
-            //     var atual = Number(o.bids[0].toFixed(2));
-            //     valorVenda = Number(valorVenda.toFixed(2));
-            //     labelsArr.push(atual);
-            //     labelsArr.push(valorVenda);
-            //     labelsArr.sort();
-            //     for (var i=0; i<labelsArr.length; i++) { 
-            //         var item = {x:0, y:0};
-            //         if (labelsArr[i] == atual) {
-            //             item = { x: atual, y: mediaVolume };
-            //         } else if (labelsArr[i] == valorVenda) {
-            //             item = { x: valorVenda, y: mediaVolume };
-            //         } 
-            //         resultado.datasets[1].data.push(item);
-            //     }
-            // } 
-
-            resultado.labels = labelsArr;
+            
             dados = JSON.stringify(resultado);
         }
 
