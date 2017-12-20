@@ -98,6 +98,10 @@ Para executar, basta utilizar o seguinte comando:
 node algodinha.js
 ```
 
+## Status de execução
+
+Se você quiser acompanhar o status do robô enquanto estiver longe do seu servidor/computador basta acessar o endereço: `http://ip_da_sua_maquina:1337/`
+
 
 ## Roadmap
 
