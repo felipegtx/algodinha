@@ -33,19 +33,21 @@ var AlgoDinha = function() {
         heartbeatEnviado : false,
         simboloBTC : "BTCBRL",
         idCorretora : "4", /// Foxbit
+        iniciando : false,
+        ultimaCompra : {min: 0, max: 0, realizada:false},
 
         //////////////////////////////////////////////////////////////////////////
         /// Parâmetros da execução
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 70000,
+        valorMaximoCompra : 63000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
-        valorMinimoCompra : 66900,
+        valorMinimoCompra : 61500,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 3000,
+        maximoGastos : 1800 + 300,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
@@ -114,7 +116,7 @@ var AlgoDinha = function() {
                 }
                 
                 enviaEmail("Ordem de compra " + tipoExecucao + " executada!", "Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
-                adicionarCompra((ordem.LastPx / 1e8), disponivel);
+                adicionarCompra((ordem.LastPx / 1e8), disponivel, 0, true);
 
             } else { 
                 
@@ -193,13 +195,24 @@ var AlgoDinha = function() {
         if (params.compras && params.compras.length > 0) { 
             var valorTotal = 0;
             for (var i = 0; i < params.compras.length; i++) { 
-                valorTotal += params.compras[i].valor * params.compras[i].volume;
+                if (!isNaN(params.compras[i].volume) ) { 
+                    valorTotal += params.compras[i].valor * params.compras[i].volume;
+                }
             }
             return valorTotal / obterVolumeTotal();
         }
     
         return 0;
     }
+
+    function obterVolumeMedioCompras() { 
+        
+            if (params.compras && params.compras.length > 0) { 
+                return obterVolumeTotal() / params.compras.length;
+            }
+        
+            return 0;
+        }
     
     function round(value, decimals) {
         /// NASTY! mas funfa.
@@ -211,7 +224,9 @@ var AlgoDinha = function() {
         if (params.compras && params.compras.length > 0) { 
             var volumeTotal = 0;
             for (var i = 0; i < params.compras.length; i++) { 
-                volumeTotal += params.compras[i].volume;
+                if (!isNaN(params.compras[i].volume)) { 
+                    volumeTotal += params.compras[i].volume;
+                }
             }
             return round(volumeTotal, 8);
         }
@@ -224,7 +239,9 @@ var AlgoDinha = function() {
         if (params.compras && params.compras.length > 0) { 
             var volumeTotal = 0;
             for (var i = 0; i < params.compras.length; i++) { 
-                volumeTotal += params.compras[i].volumeOriginal;
+                if (!isNaN(params.compras[i].volume)) { 
+                    volumeTotal += params.compras[i].volumeOriginal;
+                }
             }
             return round(volumeTotal, 8);
         }
@@ -245,8 +262,13 @@ var AlgoDinha = function() {
         return 0;    
     }
     
-    function adicionarCompra(valor, volume, volumeOriginal) { 
+    function adicionarCompra(valor, volume, volumeOriginal, atualizaUltimaCompra) { 
         params.comprado = true;
+        if (atualizaUltimaCompra) { 
+            params.ultimaCompra.realizada = true;
+            params.ultimaCompra.min = valor - params.thresholdRecompraEmBRL;
+            params.ultimaCompra.max = valor + params.thresholdRecompraEmBRL;
+        }
         params.compras.push({valor:valor, volume:volume, volumeOriginal:volumeOriginal});
     }
     
@@ -285,16 +307,25 @@ var AlgoDinha = function() {
         });
     }
 
-    function existemComprasNoValor(valor) {
+    function devemosComprarNoValor(valor) {
+
         valor = parseInt(valor);
+
+        /// Dentro do túnel de estabilidade
+        if ((valor > params.valorMaximoCompra) 
+            || (params.ultimaCompra.realizada && (params.ultimaCompra.min <= valor) && (params.ultimaCompra.max >= valor))) { 
+            return false;
+        }
+
         if (params.compras && params.compras.length > 0) { 
             for (var i = 0; i < params.compras.length; i++) { 
                 if (parseInt(params.compras[i].valor) == valor) { 
-                    return true;
+                    return false;
                 }
             }
         }
-        return false;
+
+        return true;
     }
 
     
@@ -313,7 +344,7 @@ var AlgoDinha = function() {
     
     function adicionarOrdem(preco, volume, tipo, okDel, nokDel) { 
         try{
-            
+
             if (preco == 0) { 
                 nokDel({});
                 return;
@@ -446,7 +477,7 @@ var AlgoDinha = function() {
                 })
             .catch(function(Exc) {
                 console.error("Deu ruim na posição".erro, Exc);
-                publico.iniciar();
+                publico.iniciar(true);
             });
     }
 
@@ -470,18 +501,23 @@ var AlgoDinha = function() {
         if (params.comprado) { 
             
             pln("Executando comprado...".comprado);
-            var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
-            if (volumeQuePodeSerVendido > 0) { 
 
-                pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido).comprado);
-                adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, function(r) { 
-                    if (r) { 
-                        limparCompras(melhorOfertaCompraAtual);
-                    }
-                }, function() { });
+            ///////////////////////////////////////////////////////////////////////////////////////////
+            // var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
+            // if (volumeQuePodeSerVendido > 0) { 
 
-            } 
-            else if (melhorOfertaCompraAtual > valorVenda) { 
+            //     pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido).comprado);
+            //     adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, function(r) { 
+            //         if (r) { 
+            //             limparCompras(melhorOfertaCompraAtual);
+            //         }
+            //     }, function() { });
+
+            // } 
+            // else 
+            ///////////////////////////////////////////////////////////////////////////////////////////
+
+            if (melhorOfertaCompraAtual > valorVenda) { 
                 if (params.subindo) { 
                     if (params.ultimaMelhorOferta <= melhorOfertaCompraAtual) { 
     
@@ -529,7 +565,7 @@ var AlgoDinha = function() {
                     if (melhorOfertaVendaAtual > valorMedioDaCarteira) { 
                         pln("O mercado está subindo, e ele tem talento pra isso!! Melhor oferta de venda atual: R$ " + melhorOfertaVendaAtual + ".");
                     }
-                    else if (!existemComprasNoValor(melhorOfertaVendaAtual)) { 
+                    else if (devemosComprarNoValor(melhorOfertaVendaAtual)) { 
     
                         if (melhorOfertaVendaAtual < params.valorMinimoCompra) { 
                             pln("Mercado caiu de mais. Vamos aguardar".aviso);
@@ -549,7 +585,11 @@ var AlgoDinha = function() {
                             }
                         }, function() { });
     
-                    } else { 
+                    } else if (melhorOfertaVendaAtual > params.valorMaximoCompra) { 
+
+                        pln("  Muito caro. Valor máximo para compra: R$ " + params.valorMaximoCompra);
+                                        
+                    } else {
     
                         pln("  Já temos posição em: R$ " + parseInt(melhorOfertaVendaAtual));
     
@@ -597,11 +637,16 @@ var AlgoDinha = function() {
                 return base;
             },
             html : function() { 
-                var txt = "<html>";
+                var txt = "<html><head><title>Algodinha</title>" + 
+                            "<meta http-equiv=\"refresh\" content=\"10\">" + 
+                            "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">" + 
+                            "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">" + 
+                            "<meta name=\"viewport\" content=\"width=device-width\">" + 
+                            "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.js\"></script><body><div>";
                 for (var i=0; i < base.detalhes.length; i++) { 
                     txt += base.detalhes[i] + "<br>";
                 }
-                txt += "</html>";
+                txt += "</div>" + getHtmlChart() + "</body></html>";
                 return txt;
             }, 
             pln :function() { 
@@ -624,6 +669,104 @@ var AlgoDinha = function() {
 
         return base;
     }
+
+    function getHtmlChart() { 
+
+        var dados = "[]";
+
+        if (params.compras) { 
+
+            var compras = clone(params.compras).sort(function(a, b) { 
+                return a.valor == b.valor ? a.volume < b.volume ? -1 : 1 : a.valor < b.valor ? -1 : 1;
+            });
+
+            var conteudo = {};
+            for (var i=0; i < compras.length; i++) { 
+                var compra = params.compras[i];
+                if (!conteudo[compra.valor]) { 
+                    conteudo[compra.valor] = 0;
+                }
+                conteudo[compra.valor] += compra.volume;
+            }
+
+            var labelsArr = [],
+                resultado = {
+                    datasets : [{
+                        label : ["Distrib. Volume/Valor"],
+                        fill: false,
+                        backgroundColor: 'rgb(54, 162, 235)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        data : []
+                    },
+                    {
+                        label: ["Saída"],
+                        fill: false,
+                        labels : [ "Valor saída" ],
+                        pointBackgroundColor : ['rgb(255, 99, 132)', 'rgb(75, 192, 192)'],
+                        data: []
+                    }]
+                };
+
+            for (valorCompra in conteudo) {
+                var volume = conteudo[valorCompra].toFixed(8);
+                labelsArr.push(valorCompra);
+                resultado.datasets[0].data.push({ x: valorCompra, y: volume});
+            }
+
+            // var o = params.book,
+            //     volumeTotal = obterVolumeTotal(),
+            //     mediaVolume = obterVolumeMedioCompras(),
+            //     valorVenda = obterValorVenda();
+
+            // if (o && o.bids && o.bids[0] && mediaVolume > 0) { 
+            //     var atual = Number(o.bids[0].toFixed(2));
+            //     valorVenda = Number(valorVenda.toFixed(2));
+            //     labelsArr.push(atual);
+            //     labelsArr.push(valorVenda);
+            //     labelsArr.sort();
+            //     for (var i=0; i<labelsArr.length; i++) { 
+            //         var item = {x:0, y:0};
+            //         if (labelsArr[i] == atual) {
+            //             item = { x: atual, y: mediaVolume };
+            //         } else if (labelsArr[i] == valorVenda) {
+            //             item = { x: valorVenda, y: mediaVolume };
+            //         } 
+            //         resultado.datasets[1].data.push(item);
+            //     }
+            // } 
+
+            resultado.labels = labelsArr;
+            dados = JSON.stringify(resultado);
+        }
+
+        return "<div style='width:75%;'><canvas id='myChart' width='800' height='600'></canvas></div>" + 
+                "<script>" + 
+                "var ctx = document.getElementById('myChart').getContext('2d');" + 
+                "var myChart = Chart.Line(ctx, {" + 
+                "    data: " + dados +  "," + 
+                "    options: {" + 
+                "       responsive: false," + 
+                "       title : { display:true, text:'Posição atual' }, " + 
+                "       scales: {" +
+                "           xAxes: [{" +
+                "               display: true," + 
+                "               scaleLabel: {" +
+                "                   display: true," +
+                "                   labelString: 'Valor BTC'" +
+                "               }" +
+                "           }]," +
+                "           yAxes: [{" +
+                "               display: true," +
+                "               scaleLabel: {" +
+                "                   display: true," +
+                "                   labelString: 'Volume'" +
+                "               }" +
+                "           }]" +
+                "       }" +
+                "    } " + 
+                "});" + 
+                "</script>";
+    }
   
     var publico = { 
         status : function(hideHeader) { 
@@ -639,17 +782,25 @@ var AlgoDinha = function() {
                         .add("");
                 }
 
+                if (params.offline) { 
+                    return resultado.add("Disconectado!".aviso, true).add("");
+                }
+
+                if (params.iniciando) { 
+                    return resultado.add("Iniciando...".aviso, true).add("");
+                }
+
                 if (params.aguardandoOrdem) { 
                     return resultado.add("Aguardando execução da última ordem".aviso, true).add("");
                 }
 
-                var o = params.book;
-                if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0]) { 
+                var o = params.book,
+                    volumeTotal = obterVolumeTotal();
+                if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0] || isNaN(volumeTotal)) { 
                     return resultado.add("Deu ruim".erro, true).add("");
                 }
 
-                var volumeTotal = obterVolumeTotal(),
-                    melhorOfertaCompraAtual = o.bids[0],
+                var melhorOfertaCompraAtual = o.bids[0],
                     saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual);
                 resultado
                     .ext({
@@ -671,6 +822,7 @@ var AlgoDinha = function() {
                     .add("    - Volume total: BTC " + resultado.volumeTotal)
                     .add("    - Target de venda: R$ " + resultado.valorVenda.toFixed(2))
                     .add("    - Delta de saída em: " + (((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2) + "%")
+                    .add("    - Túnel: Min: " + params.ultimaCompra.min + ", Max: " + params.ultimaCompra.max)
                     .add("")
                     .add("STATUS ATUAL DO MERCADO:")
                     .add("    - Compra: R$ " + resultado.melhorOfertaCompraAtual.toFixed(3))
@@ -683,54 +835,76 @@ var AlgoDinha = function() {
 
             return resultado;
         },
-        iniciar : function() { 
-            pln("Iniciando...".titulo);
+        iniciar : function(forcar) { 
 
+            if (!forcar && (params && (params.iniciando === true))) { 
+                pln("Processo de inicialização já em execução...".aviso);
+                return;
+            } 
+            
             params = clone(parametrosDefault);
-
-            var dataBase = new Date(params.dataBase);
-
+            params.iniciando = true;
+            
             /// Conecta na Exchange
+            pln("Conectando...".titulo);
             blinktradeWs.connect().then(function() {
                 
+                pln("Realizando o login...".titulo);
                 return blinktradeWs.login({ username: params.security.user, password: params.security.password });
-            
+                
             })
             .then(function() { 
-                blinktradeWs.balance().then(function(extrato) { 
-                    params.saldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
-                });
-            })
-            .then(function(logged) {
                 
-                atualizarCarteira(dataBase, function() { 
+                pln("Obtendo posição atual...".titulo);
+                blinktradeWs.balance()
 
-                    
-                    blinktradeWs.executionReport()
-                        .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
-                        .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
-                    
-                    blinktradeWs.subscribeOrderbook([params.simboloBTC])
-                        .on("OB:NEW_ORDER", atualizaBook)
-                        .on("OB:UPDATE_ORDER", atualizaBook)
-                        .then(function(fullBook) { 
+                    .then(function(extrato) { 
+                        pln("Posição obtida!".titulo);
+                        params.saldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
+                    })
+                    .then(function(logged) {
+                
+                        pln("Atualizando a carteira...".titulo);
+                        var dataBase = new Date(params.dataBase);
+                        atualizarCarteira(dataBase, function() {
+
+                            blinktradeWs.executionReport()
+                            .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
+                            .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
+                            
+                            pln("Obtendo snapshot do book...".titulo);
+                            blinktradeWs.subscribeOrderbook([params.simboloBTC])
+                                .on("OB:NEW_ORDER", atualizaBook)
+                                .on("OB:UPDATE_ORDER", atualizaBook)
+                                .then(function(fullBook) { 
+                                
+                                    pln("Sucesso!".titulo);
+                                    params.iniciando = false;
+                                    enviarBatida();
+                                    var dadosDoBook = fullBook.MDFullGrp[params.simboloBTC];
+                                    params.book = { asks:dadosDoBook.asks[0], bids:dadosDoBook.bids[0] };
+                                    trataOrdens();
                         
-                            enviarBatida();
-                            var dadosDoBook = fullBook.MDFullGrp[params.simboloBTC];
-                            params.book = { asks:dadosDoBook.asks[0], bids:dadosDoBook.bids[0] };
-                            trataOrdens();
-                
-                        })
-                        .catch(function(EE) {
-                            console.error("Erro na assinatura do book.".erro, EE);
-                        });
+                                })
+                                .catch(function(EE) {
+                                    console.error("Erro na assinatura do book.".erro, EE);
+                                    params.iniciando = false;
+                                });
 
-                }, function() {
-                    console.error("Problema ao obter carteira".erro, e);
+                    }, function() {
+                        console.error("Problema ao obter carteira".erro, e);
+                        params.iniciando = false;
+                    });
+                
+                }).catch(function(e){ 
+                    console.error("Problema ao atualizar posição/carteira".erro, e);
+                    params.iniciando = false;
                 });
+
             })
             .catch(function(e){ 
                 console.error("Problema ao registrar pra execution report".erro, e);
+                params.iniciando = false;
             });
         }
     };
@@ -740,8 +914,7 @@ var AlgoDinha = function() {
 
 var algodinha = new AlgoDinha();
 
-var http = require("http");
-http.createServer(function (request, response) {
+require("http").createServer(function (request, response) {
     response.writeHead(200, 
     { 
         "Content-Type": "text/html; charset=utf-8", 

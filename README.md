@@ -103,7 +103,10 @@ node algodinha.js
 
 Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
 
+ - **Cancelar ordem que emperrar no book** - Cancelar a ordem quando ela passar `X` segundos no book sem executar.
  - **Refazer saldo na venda parcial** - Quando o algoritmo decidir executar uma venda parcial, é preciso considerar este déficit de volume e melhor no saldo. Precisamos alterar também lógica do método `obterValorTotalGasto()` para refletir isso de forma dinâmica.
+ - **Permitir uso do robô em outras moedas** - Atualmente o robô está "hardwired" para BTC. Seria interessante abstrair as informações de Crypto e Fiat utilizadas.
+ - **Refactory** - Este código - até o momento - foi criado praticamente em três noites. Certamente precisaremos limpar/organizar muita coisa por aqui.
  
  ### Problemas conhecidos
  
