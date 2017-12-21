@@ -1,9 +1,17 @@
 
 var AlgoDinha = function() { 
     
-    var BlinkTradeWS = require("blinktrade").BlinkTradeWS,
-        colors = require("colors"),
-        gmailSend = require("gmail-send");
+    const BlinkTradeWS = require("blinktrade").BlinkTradeWS,
+            colors = require("colors"),
+            gmailSend = require("gmail-send"),
+            enderecoLog = "./log/algodinha.txt",
+            { createLogger, format, transports }  = require("winston"),
+            { combine, timestamp, label, prettyPrint } = format,
+            log = createLogger({ 
+                transports: [
+                    new transports.File({ filename: enderecoLog })
+                ] 
+            });
 
     colors.setTheme({
         erro: ["red", "underline"],
@@ -13,8 +21,8 @@ var AlgoDinha = function() {
         vendido: ["magenta"],
         titulo: ["white", "bold"]
     });
-
-    var parametrosDefault = {
+    
+    const parametrosDefault = {
 
         /// Estado da aplicação
         security : require("./api.json"), 
@@ -67,20 +75,20 @@ var AlgoDinha = function() {
 
         //////////////////////////////////////////////////////////////////////////
         
-    },
+    };
 
     /// Objeto com os valores "quentes" para operação
-    params = null;
+    var params = null;
 
     function obterWS() {
 
         if (!params) { 
-            pln("Parametros não inicializados.".erro);
+            pln("Parametros não inicializados.");
             return null;
         } 
 
         if (!params.instanciaWS || (params.offline && !params.iniciando)) { 
-            pln("Obtendo nova instância de WS".aviso);
+            pln("Obtendo nova instância de WS");
             params.instanciaWS = new BlinkTradeWS( { prod: true })
         }
         
@@ -96,7 +104,7 @@ var AlgoDinha = function() {
             text:    texto
         }, function (err, res) {
             if (err) { 
-                console.log("Erro ao enviar email:", err, assunto, texto);
+                pln("Erro ao enviar email:", err, assunto, texto);
             }
         });
     }
@@ -104,18 +112,23 @@ var AlgoDinha = function() {
     function clone(obj) { 
         return JSON.parse(JSON.stringify(obj));
     }
+
+    function plnErro(str) { 
+        params.ultimoPln = str;
+        log.error(str);
+    }
        
     function pln(str, warn) { 
         params.ultimoPln = str;
         if (!warn) { 
-            console.info(str);
+            log.info(str);
         } else { 
-            console.warn(str.aviso);
+            log.warn(str);
         }
     }
 
     function trataNegociacao(ordem, parcial) { 
-        obterWS().balance().then(function(extrato) { 
+        obterWS().balance().then((extrato) => { 
 
             var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
             var tipoExecucao = parcial ? "parcialmente" : "totalmente";
@@ -137,11 +150,11 @@ var AlgoDinha = function() {
 
             } else { 
                 
-                console.log("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
+                pln("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
                 enviaEmail("Ordem de venda " + tipoExecucao + " executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
                 
-                params.comprado = (obterVolumeTotal() > 0);
-                if (!params.comprado) { 
+                params = (obterVolumeTotal() > 0);
+                if (!params) { 
                     
                     /// Remove todas as compras
                     limparCompras();
@@ -236,7 +249,7 @@ var AlgoDinha = function() {
         var result = Number(Math.round(value + "e" + decimals) + "e-" + decimals);
 
         if (isNaN(result)) { 
-            pln(("Valor não pode ser arredondado: " + value).erro);
+            pln(("Valor não pode ser arredondado: " + value));
         }
 
         return result;
@@ -289,7 +302,7 @@ var AlgoDinha = function() {
         if (!volume) {
             return;
         }
-        params.comprado = true;
+        params = true;
         if (atualizaUltimaCompra) { 
             params.ultimaCompra.realizada = true;
             params.ultimaCompra.min = valor - params.thresholdRecompraEmBRL;
@@ -323,9 +336,9 @@ var AlgoDinha = function() {
     }
 
     function checkPing(on, off) { 
-        require("dns").resolve("www.google.com", function(err) {
+        require("dns").resolve("www.google.com", (err) => {
             if (err) {
-                console.log("Vish... Caimos!");
+                pln("Vish... Caimos!");
                 off();
             } else {
                 on();
@@ -385,12 +398,12 @@ var AlgoDinha = function() {
                 amount: parseInt(volume * 1e8, 10),
                 symbol: params.simboloBTC
             }).then(
-                function(ok){ 
+                (ok) => { 
 
                     var tipoOrdem = tipo == "1" ? "compra" : "venda";
                     enviaEmail("Ordem de " + tipoOrdem + " colocada com sucesso!", "Valor: R$ " + preco + " - Volume: " + volume);
 
-                    console.warn("Ordem colocada com sucesso!".aviso, ok);
+                    pln("Ordem colocada com sucesso!", ok);
                     okDel(ok);
                     pln(""); pln(""); pln("");
                     pln(""); pln(""); pln("");
@@ -398,28 +411,28 @@ var AlgoDinha = function() {
             ).catch(
                 function (nok) { 
 
-                    console.error("Falha ao enviar ordem".erro, nok); 
+                    plnErro("Falha ao enviar ordem", nok); 
                     nokDel(nok); 
                 }
             );
 
         } catch(E) { 
-            console.error("Falha na infra de ordem".erro, nok); 
+            plnErro("Falha na infra de ordem", nok); 
             nokDel(E);
         }
     }
 
     function enviarBatida() { 
-        var intervaloAtual = setInterval(function() { 
+        var intervaloAtual = setInterval(() => { 
 
             if (params.heartbeatEnviado) { 
-                console.error("Timeout no heartbeat.".erro);
+                plnErro("Timeout no heartbeat.");
                 params.offline = true;
             }
 
             params.heartbeatEnviado = true;
             checkPing(
-                function() { 
+                () => { 
                     
                     if (params.offline) { 
                         params.offline = false;
@@ -429,19 +442,19 @@ var AlgoDinha = function() {
                     }
                     
                     params.offline = false;
-                    console.log(colors.grey.italic(" <3  "));
-                    obterWS().heartbeat(function() { 
-                        console.log(" <3 ".grey);
+                    pln(colors.grey.italic(" <3  "));
+                    obterWS().heartbeat(() => { 
+                        pln(" <3 ".grey);
                         params.heartbeatEnviado = false;
                     })
-                    .catch(function(E) {
-                        console.error("Heartbeat falhou".erro, E);
+                    .catch((E) => {
+                        plnErro("Heartbeat falhou", E);
                         params.offline = true;
                         params.heartbeatEnviado = false;
                     });
                 },
-                function() { 
-                    console.error("Internet morreu. RIP".erro);
+                () => { 
+                    plnErro("Internet morreu. RIP");
                     params.offline = true;
                 }
             );
@@ -454,7 +467,7 @@ var AlgoDinha = function() {
         carteiraTemporaria = carteiraTemporaria ? carteiraTemporaria : {};
 
         return obterWS().requestLedger( { page: pagina, pageSize: profundidadeDaCarteira })
-            .then(function(historico) { 
+            .then((historico) => { 
                 
                 var livro = historico.LedgerListGrp;
                 var tamanhoPagina = livro.length;
@@ -477,7 +490,7 @@ var AlgoDinha = function() {
                         if (item.Description == "T") { 
                                 if (item.Currency == "BRL") { 
                                     if (!carteiraTemporaria[item.Reference].volumeOriginal) { 
-                                        console.error("Deu PAU!!!!!! Falta volume original!!".erro);
+                                        plnErro("Deu PAU!!!!!! Falta volume original!!");
                                         nokDel();
                                         return;
                                     }
@@ -507,8 +520,8 @@ var AlgoDinha = function() {
                     }
                     
                 })
-            .catch(function(Exc) {
-                console.error("Deu ruim na posição".erro, Exc);
+            .catch((Exc) => {
+                plnErro("Deu ruim na posição", Exc);
                 publico.iniciar(true);
             });
     }
@@ -516,7 +529,7 @@ var AlgoDinha = function() {
     function trataOrdens() { 
 
         var estadoExecucao = publico.status().pln();
-        if (!estadoExecucao.ok) { 
+        if (!estadoExecucao) { 
             return;
         }
     
@@ -530,20 +543,20 @@ var AlgoDinha = function() {
             saldoBrutoBRL = estadoExecucao.saldoBrutoBRL;
         
         /// Caso já tenhamos uma ordem executada
-        if (params.comprado) { 
+        if (params) { 
             
-            pln("Executando comprado...".comprado);
+            pln("Executando comprado...");
 
             ///////////////////////////////////////////////////////////////////////////////////////////
             // var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
             // if (volumeQuePodeSerVendido > 0) { 
 
-            //     pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido).comprado);
-            //     adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, function(r) { 
+            //     pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido));
+            //     adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, (r) => { 
             //         if (r) { 
             //             limparCompras(melhorOfertaCompraAtual);
             //         }
-            //     }, function() { });
+            //     }, () => { });
 
             // } 
             // else 
@@ -567,11 +580,11 @@ var AlgoDinha = function() {
                         }
     
                         /// Vende tudo!!!
-                        adicionarOrdemVenda(melhorOfertaCompraAtual, obterVolumeTotal(), function(r) { 
+                        adicionarOrdemVenda(melhorOfertaCompraAtual, obterVolumeTotal(), (r) => { 
                             if (r) { 
-                                console.log("FINALIZADO!");
+                                pln("FINALIZADO!");
                             }
-                        }, function() { });
+                        }, () => { });
     
                     }
     
@@ -600,22 +613,22 @@ var AlgoDinha = function() {
                     else if (devemosComprarNoValor(melhorOfertaVendaAtual)) { 
     
                         if (melhorOfertaVendaAtual < params.valorMinimoCompra) { 
-                            pln("Mercado caiu de mais. Vamos aguardar".aviso);
+                            pln("Mercado caiu de mais. Vamos aguardar");
                             return;
                         }
 
                         pln("- Tentando melhorar média de saída...");
                         pln("  Adicionando posição por " + melhorOfertaVendaAtual, true);
                         var volume = (params.valorOrdem / melhorOfertaVendaAtual);
-                        adicionarOrdemCompra(melhorOfertaVendaAtual, volume, function(r) { 
+                        adicionarOrdemCompra(melhorOfertaVendaAtual, volume, (r) => { 
                             if (r) { 
     
                                 params.subindo = false;
     
                             } else { 
-                                console.warn("  Deu RUIM", r);
+                                plnErro("  Deu RUIM", r);
                             }
-                        }, function() { });
+                        }, () => { });
     
                     } else if (melhorOfertaVendaAtual > params.valorMaximoCompra) { 
 
@@ -633,21 +646,21 @@ var AlgoDinha = function() {
         /// Estamos esperando o momento de entrar no mercado e montar posição
         else { 
     
-            pln("Executando sem posição...".vendido);
+            pln("Executando sem posição...");
    
             if (melhorOfertaVendaAtual <= params.valorMaximoCompra) { 
     
                 pln("Comprando por " + melhorOfertaVendaAtual, true);
                 var volume = (params.valorOrdem / melhorOfertaVendaAtual);
-                adicionarOrdemCompra(melhorOfertaVendaAtual, volume, function(r) { 
+                adicionarOrdemCompra(melhorOfertaVendaAtual, volume, (r) => { 
                     if (r) { 
     
                         params.subindo = false;
                         
                     } else { 
-                        console.warn("Deu RUIM", r);
+                        plnErro("Deu RUIM", r);
                     }
-                }, function() { });
+                }, () => { });
     
             } else { 
     
@@ -661,14 +674,14 @@ var AlgoDinha = function() {
         var base = {
             ok : true, 
             detalhes: [],
-            add : function(detalhe, erro) { 
+            add : (detalhe, erro) => { 
                 base.detalhes.push(detalhe);
                 if (erro) { 
                     this.ok = false;
                 }
                 return base;
             },
-            html : function() { 
+            html : () => { 
                 var txt = "<html><head><title>Algodinha</title>" + 
                             "<meta http-equiv=\"refresh\" content=\"10\">" + 
                             "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">" + 
@@ -678,21 +691,21 @@ var AlgoDinha = function() {
                 for (var i=0; i < base.detalhes.length; i++) { 
                     txt += base.detalhes[i] + "<br>";
                 }
-                txt += "<strong>Último pln: </strong>" + params.ultimoPln;
+                txt += "<strong>Última mensagem: </strong>" + params.ultimoPln;
                 txt += "</div>" + getHtmlChart() + "</body></html>";
                 return txt;
             }, 
-            pln :function() { 
+            pln : () => { 
                 for (var i=0; i < base.detalhes.length; i++) { 
-                    if (base.ok) { 
+                    if (base) { 
                         pln(base.detalhes[i]);
                     } else { 
-                        pln(base.detalhes[i].erro);
+                        pln(base.detalhes[i]);
                     }
                 }
                 return base;
             },
-            ext : function(obj) { 
+            ext : (obj) => { 
                 for (i in obj) { 
                     base[i] = obj[i];
                 }
@@ -709,7 +722,7 @@ var AlgoDinha = function() {
 
         if (params.compras) { 
 
-            var compras = clone(params.compras).sort(function(a, b) { 
+            var compras = clone(params.compras).sort((a, b) => { 
                 return a.valor == b.valor ? a.volume < b.volume ? -1 : 1 : a.valor < b.valor ? -1 : 1;
             });
 
@@ -765,7 +778,7 @@ var AlgoDinha = function() {
     }
   
     var publico = { 
-        status : function(hideHeader) { 
+        status : (hideHeader) => { 
             
             var resultado = new StatusAplicacao();
 
@@ -773,7 +786,7 @@ var AlgoDinha = function() {
                 
                 if (!hideHeader) { 
                     resultado
-                        .add("----------------------------------------------------------------------------------------------------------------".titulo)
+                        .add("----------------------------------------------------------------------------------------------------------------")
                         .add("");
                 }
 
@@ -826,7 +839,6 @@ var AlgoDinha = function() {
                     .add("    - Máximo de gastos: R$ " + params.maximoGastos)
                     .add("    - Valor investido: R$ " + obterValorTotalGasto())
                     .add("")
-                    .add("")
                     .add("STATUS ATUAL DO MERCADO:")
                     .add("    - Compra: R$ " + resultado.melhorOfertaCompraAtual.toFixed(3))
                     .add("    - Venda: R$ " + resultado.melhorOfertaVendaAtual.toFixed(3))
@@ -838,10 +850,10 @@ var AlgoDinha = function() {
 
             return resultado;
         },
-        iniciar : function(forcar) { 
+        iniciar : (forcar) => { 
 
             if (!forcar && (params && (params.iniciando === true))) { 
-                pln("Processo de inicialização já em execução...".aviso);
+                pln("Processo de inicialização já em execução...");
                 return;
             } 
             
@@ -853,39 +865,39 @@ var AlgoDinha = function() {
             params.iniciando = true;
             
             /// Conecta na Exchange
-            pln("Conectando...".aviso);
-            ws.connect().then(function() {
+            pln("Conectando...");
+            ws.connect().then(() => {
                 
-                pln("Realizando o login...".titulo);
+                pln("Realizando o login...");
                 return ws.login({ username: params.security.user, password: params.security.password });
                 
             })
-            .then(function() { 
+            .then(() => { 
                 
-                pln("Obtendo posição atual...".aviso);
+                pln("Obtendo posição atual...");
                 ws.balance()
 
-                    .then(function(extrato) { 
-                        pln("Posição obtida!".ok);
+                    .then((extrato) => { 
+                        pln("Posição obtida!");
                         params.saldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
                     })
-                    .then(function(logged) {
+                    .then((logged) => {
                 
-                        pln("Atualizando a carteira...".aviso);
+                        pln("Atualizando a carteira...");
                         var dataBase = new Date(params.dataBase);
-                        atualizarCarteira(dataBase, function() {
+                        atualizarCarteira(dataBase, () => {
 
                             ws.executionReport()
                             .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
                             .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
                             
-                            pln("Obtendo snapshot do book...".titulo);
+                            pln("Obtendo snapshot do book...");
                             ws.subscribeOrderbook([params.simboloBTC])
                                 .on("OB:NEW_ORDER", atualizaBook)
                                 .on("OB:UPDATE_ORDER", atualizaBook)
-                                .then(function(fullBook) { 
+                                .then((fullBook) => { 
                                 
-                                    pln("Sucesso!".ok);
+                                    pln("Sucesso!");
                                     params.iniciando = false;
                                     params.offline = false;
                                     enviarBatida();
@@ -894,27 +906,27 @@ var AlgoDinha = function() {
                                     trataOrdens();
                         
                                 })
-                                .catch(function(EE) {
-                                    console.error("Erro na assinatura do book.".erro, EE);
+                                .catch((EE) => {
+                                    plnErro("Erro na assinatura do book.", EE);
                                     params.iniciando = false;
                                     publico.iniciar();
                                 });
 
-                    }, function() {
-                        console.error("Problema ao obter carteira".erro, e);
+                    }, () => {
+                        plnErro("Problema ao obter carteira", e);
                         params.iniciando = false;
                         publico.iniciar();
                     });
                 
-                }).catch(function(e){ 
-                    console.error("Problema ao atualizar posição/carteira".erro, e);
+                }).catch((e) => { 
+                    plnErro("Problema ao atualizar posição/carteira", e);
                     params.iniciando = false;
                     publico.iniciar();
                 });
 
             })
-            .catch(function(e){ 
-                console.error("Problema ao registrar pra execution report".erro, e);
+            .catch((e) => { 
+                plnErro("Problema ao registrar pra execution report", e);
                 params.iniciando = false;
                 publico.iniciar();
             });
