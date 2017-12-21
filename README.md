@@ -111,10 +111,12 @@ Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
  - **Refazer saldo na venda parcial** - Quando o algoritmo decidir executar uma venda parcial, é preciso considerar este déficit de volume e melhor no saldo. Precisamos alterar também lógica do método `obterValorTotalGasto()` para refletir isso de forma dinâmica.
  - **Permitir uso do robô em outras moedas** - Atualmente o robô está "hardwired" para BTC. Seria interessante abstrair as informações de Crypto e Fiat utilizadas.
  - **Refactory** - Este código - até o momento - foi criado praticamente em três noites. Certamente precisaremos limpar/organizar muita coisa por aqui.
+ - **Obter valores de operação de forma automática** - Hoje os parâmetros são codados diretamente nos `parametrosDefault`. O ideal seria que estes dados pudessem ser calculados com base no saldo e limite disponível em Fiat.
  
  ### Problemas conhecidos
  
   - **Demora na inicialização:** Em alguns momentos o snapshot do book pode demorar muito para chegar. É uma característica da infra da Blinktrade. Se isso acontecer com você (observável pela demora em iniciar o robô), basta cancelar a execução e executar novamente.
+  - **Reconexão:** O processo de reconexão ainda é bem arcaico. No estado atual, não recomendo que você deixe o robô executando sem supervisão.
   
 ## Contribuição
 

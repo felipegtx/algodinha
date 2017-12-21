@@ -2,7 +2,6 @@
 var AlgoDinha = function() { 
     
     var BlinkTradeWS = require("blinktrade").BlinkTradeWS,
-        blinktradeWs = new BlinkTradeWS( { prod: true }),
         colors = require("colors"),
         gmailSend = require("gmail-send");
 
@@ -28,26 +27,28 @@ var AlgoDinha = function() {
         comprado : false,
         subindo : false,
         saldoBRL : 0,
-        profundidadeBuscaCarteira : 3000,
+        profundidadeBuscaCarteira : 5000,
         offline : false,
         heartbeatEnviado : false,
         simboloBTC : "BTCBRL",
         idCorretora : "4", /// Foxbit
         iniciando : false,
         ultimaCompra : {min: 0, max: 0, realizada:false},
+        ultimoPln : "",
+        instanciaWS : null,
 
         //////////////////////////////////////////////////////////////////////////
         /// Parâmetros da execução
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 63000,
+        valorMaximoCompra : 52000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
-        valorMinimoCompra : 61500,
+        valorMinimoCompra : 47000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 1800 + 300,
+        maximoGastos : 3700 + 100,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
@@ -71,6 +72,21 @@ var AlgoDinha = function() {
     /// Objeto com os valores "quentes" para operação
     params = null;
 
+    function obterWS() {
+
+        if (!params) { 
+            pln("Parametros não inicializados.".erro);
+            return null;
+        } 
+
+        if (!params.instanciaWS || (params.offline && !params.iniciando)) { 
+            pln("Obtendo nova instância de WS".aviso);
+            params.instanciaWS = new BlinkTradeWS( { prod: true })
+        }
+        
+        return params.instanciaWS;
+    }
+
     function enviaEmail(assunto, texto) { 
         gmailSend()({
             user: params.email.email,
@@ -90,6 +106,7 @@ var AlgoDinha = function() {
     }
        
     function pln(str, warn) { 
+        params.ultimoPln = str;
         if (!warn) { 
             console.info(str);
         } else { 
@@ -98,7 +115,7 @@ var AlgoDinha = function() {
     }
 
     function trataNegociacao(ordem, parcial) { 
-        blinktradeWs.balance().then(function(extrato) { 
+        obterWS().balance().then(function(extrato) { 
 
             var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
             var tipoExecucao = parcial ? "parcialmente" : "totalmente";
@@ -328,7 +345,8 @@ var AlgoDinha = function() {
 
         if (params.compras && params.compras.length > 0) { 
             for (var i = 0; i < params.compras.length; i++) { 
-                if (parseInt(params.compras[i].valor) == valor) { 
+                var valorComprado = params.compras[i].valor;
+                if (parseInt(valorComprado) == valor) {
                     return false;
                 }
             }
@@ -342,7 +360,8 @@ var AlgoDinha = function() {
         if (params.compras && params.compras.length > 0) { 
             var volumeQuePodeSerVendidoComLucro = 0;
             for (var i = 0; i < params.compras.length; i++) {
-                if (obterValorVendaPara(params.compras[i].valor) < preco) { 
+                var compra = params.compras[i];
+                if (obterValorVendaPara(compra.valor) < preco) { 
                     volumeQuePodeSerVendidoComLucro += params.compras[i].volume;
                 }
             }
@@ -360,7 +379,7 @@ var AlgoDinha = function() {
             }
 
             params.aguardandoOrdem = true;
-            blinktradeWs.sendOrder({
+            obterWS().sendOrder({
                 side: tipo,
                 price: parseInt(preco * 1e8, 10),
                 amount: parseInt(volume * 1e8, 10),
@@ -411,7 +430,7 @@ var AlgoDinha = function() {
                     
                     params.offline = false;
                     console.log(colors.grey.italic(" <3  "));
-                    blinktradeWs.heartbeat(function() { 
+                    obterWS().heartbeat(function() { 
                         console.log(" <3 ".grey);
                         params.heartbeatEnviado = false;
                     })
@@ -434,7 +453,7 @@ var AlgoDinha = function() {
         pagina = pagina ? pagina : 0;
         carteiraTemporaria = carteiraTemporaria ? carteiraTemporaria : {};
 
-        return blinktradeWs.requestLedger( { page: pagina, pageSize: profundidadeDaCarteira })
+        return obterWS().requestLedger( { page: pagina, pageSize: profundidadeDaCarteira })
             .then(function(historico) { 
                 
                 var livro = historico.LedgerListGrp;
@@ -659,6 +678,7 @@ var AlgoDinha = function() {
                 for (var i=0; i < base.detalhes.length; i++) { 
                     txt += base.detalhes[i] + "<br>";
                 }
+                txt += "<strong>Último pln: </strong>" + params.ultimoPln;
                 txt += "</div>" + getHtmlChart() + "</body></html>";
                 return txt;
             }, 
@@ -754,26 +774,25 @@ var AlgoDinha = function() {
                 if (!hideHeader) { 
                     resultado
                         .add("----------------------------------------------------------------------------------------------------------------".titulo)
-                        .add((new Date().toLocaleString() + " - Valor máximo para compra: R$ " + params.valorMaximoCompra + ", Máximo de gastos: R$ " + params.maximoGastos + " - Valor investido: R$ " + obterValorTotalGasto() + ".").titulo)
                         .add("");
                 }
 
                 if (params.offline) { 
-                    return resultado.add("Disconectado!".aviso, true).add("");
+                    return resultado.add("Disconectado!", true).add("");
                 }
 
                 if (params.iniciando) { 
-                    return resultado.add("Iniciando...".aviso, true).add("");
+                    return resultado.add("Iniciando...", true).add("");
                 }
 
                 if (params.aguardandoOrdem) { 
-                    return resultado.add("Aguardando execução da última ordem".aviso, true).add("");
+                    return resultado.add("Aguardando execução da última ordem", true).add("");
                 }
 
                 var o = params.book,
                     volumeTotal = obterVolumeTotal();
                 if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0] || isNaN(volumeTotal)) { 
-                    return resultado.add("Deu ruim".erro, true).add("");
+                    return resultado.add("Deu ruim", true).add("");
                 }
 
                 var melhorOfertaCompraAtual = o.bids[0],
@@ -794,11 +813,18 @@ var AlgoDinha = function() {
                     .add("    - Saldo BTC em BRL: R$ " + resultado.saldoBTCBRL.toFixed(2))
                     .add("    - Saldo total atual (Bruto): R$ " + resultado.saldoBrutoBRL.toFixed(2))
                     .add("    - Saldo total atual (Líquido): R$ " + (resultado.saldoBrutoBRL - (resultado.saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2))
+                    .add("")
                     .add("    - Valor médio das compras: R$ " + resultado.valorMedioDaCarteira.toFixed(3))
                     .add("    - Volume total: BTC " + resultado.volumeTotal)
                     .add("    - Target de venda: R$ " + resultado.valorVenda.toFixed(2))
+                    .add("    - Volume com delta positivo: BTC " + podemosVenderPor(melhorOfertaCompraAtual))
                     .add("    - Delta de saída em: " + (((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2) + "%")
                     .add("    - Túnel: Min: " + params.ultimaCompra.min + ", Max: " + params.ultimaCompra.max)
+                    .add("")
+                    .add("    - Valor máximo para compra: R$ " + params.valorMaximoCompra)
+                    .add("    - Máximo de gastos: R$ " + params.maximoGastos)
+                    .add("    - Valor investido: R$ " + obterValorTotalGasto())
+                    .add("")
                     .add("")
                     .add("STATUS ATUAL DO MERCADO:")
                     .add("    - Compra: R$ " + resultado.melhorOfertaCompraAtual.toFixed(3))
@@ -819,43 +845,48 @@ var AlgoDinha = function() {
             } 
             
             params = clone(parametrosDefault);
+            params.offline = true;
+            
+            var ws = obterWS();
+            
             params.iniciando = true;
             
             /// Conecta na Exchange
-            pln("Conectando...".titulo);
-            blinktradeWs.connect().then(function() {
+            pln("Conectando...".aviso);
+            ws.connect().then(function() {
                 
                 pln("Realizando o login...".titulo);
-                return blinktradeWs.login({ username: params.security.user, password: params.security.password });
+                return ws.login({ username: params.security.user, password: params.security.password });
                 
             })
             .then(function() { 
                 
-                pln("Obtendo posição atual...".titulo);
-                blinktradeWs.balance()
+                pln("Obtendo posição atual...".aviso);
+                ws.balance()
 
                     .then(function(extrato) { 
-                        pln("Posição obtida!".titulo);
+                        pln("Posição obtida!".ok);
                         params.saldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
                     })
                     .then(function(logged) {
                 
-                        pln("Atualizando a carteira...".titulo);
+                        pln("Atualizando a carteira...".aviso);
                         var dataBase = new Date(params.dataBase);
                         atualizarCarteira(dataBase, function() {
 
-                            blinktradeWs.executionReport()
+                            ws.executionReport()
                             .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
                             .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
                             
                             pln("Obtendo snapshot do book...".titulo);
-                            blinktradeWs.subscribeOrderbook([params.simboloBTC])
+                            ws.subscribeOrderbook([params.simboloBTC])
                                 .on("OB:NEW_ORDER", atualizaBook)
                                 .on("OB:UPDATE_ORDER", atualizaBook)
                                 .then(function(fullBook) { 
                                 
-                                    pln("Sucesso!".titulo);
+                                    pln("Sucesso!".ok);
                                     params.iniciando = false;
+                                    params.offline = false;
                                     enviarBatida();
                                     var dadosDoBook = fullBook.MDFullGrp[params.simboloBTC];
                                     params.book = { asks:dadosDoBook.asks[0], bids:dadosDoBook.bids[0] };
@@ -865,22 +896,26 @@ var AlgoDinha = function() {
                                 .catch(function(EE) {
                                     console.error("Erro na assinatura do book.".erro, EE);
                                     params.iniciando = false;
+                                    publico.iniciar();
                                 });
 
                     }, function() {
                         console.error("Problema ao obter carteira".erro, e);
                         params.iniciando = false;
+                        publico.iniciar();
                     });
                 
                 }).catch(function(e){ 
                     console.error("Problema ao atualizar posição/carteira".erro, e);
                     params.iniciando = false;
+                    publico.iniciar();
                 });
 
             })
             .catch(function(e){ 
                 console.error("Problema ao registrar pra execution report".erro, e);
                 params.iniciando = false;
+                publico.iniciar();
             });
         }
     };
