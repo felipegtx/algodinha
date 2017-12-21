@@ -9,7 +9,7 @@ O robô executa a estratégia [Scalper](https://www.daytraderpro.com.br/blog/o-q
 :exclamation: **IMPORTANTE:**
 
  - Não me responsabilizo por qualquer tipo de dano e/ou prejuizo causado durante e/ou decorrente do uso desta ferramenta. 
- - Lembra-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
+ - Lembre-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
 
 ## Instalando
 
@@ -122,7 +122,7 @@ Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
 
 Contribuições em forma de Bitcoin e/ou PRs são muito bem vindas! Peço apenas que antes de trabalhar/enviar uma PR entre em contato comigo para alinharmos as expectativas e approach da implementação.
 
-**Envie contribuições em BTC para:** 
- - Endereço [SegWit](https://en.wikipedia.org/wiki/SegWit): bc1qjfsqzmhu9na6ark3ldxxqfay8tjk72c67c9qhy
- - BTC: 18BE5nYMmX91yu26Qh81UaNm7c89MmMj71
+**Gostou _MUITO_? Se quiser me fazer um agrado pagando um cafezinho, tá fácil:** 
+ - Carteira [SegWit](https://en.wikipedia.org/wiki/SegWit): `bc1qjfsqzmhu9na6ark3ldxxqfay8tjk72c67c9qhy`
+ - Carteira BTC: `18BE5nYMmX91yu26Qh81UaNm7c89MmMj71`
 
