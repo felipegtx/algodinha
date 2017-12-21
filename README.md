@@ -9,7 +9,7 @@ O robô executa a estratégia [Scalper](https://www.daytraderpro.com.br/blog/o-q
 :exclamation: **IMPORTANTE:**
 
  - Não me responsabilizo por qualquer tipo de dano e/ou prejuizo causado durante e/ou decorrente do uso desta ferramenta. 
- - Lembra-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
+ - Lembre-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
 
 ## Instalando
 
