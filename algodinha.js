@@ -716,7 +716,7 @@ var AlgoDinha = function() {
             var resultado = {
                     labels: [],
                     datasets : [{
-                        label : ["Distrib. Volume/Valor"],
+                        label : ["Distribuição: Volume/Valor"],
                         fill: false,
                         backgroundColor: 'rgb(54, 162, 235)',
                         borderColor: 'rgb(54, 162, 235)',
@@ -797,6 +797,7 @@ var AlgoDinha = function() {
 
                 var melhorOfertaCompraAtual = o.bids[0],
                     saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual);
+
                 resultado
                     .ext({
                         valorVenda : obterValorVenda(),
