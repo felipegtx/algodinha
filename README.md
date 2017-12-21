@@ -122,5 +122,7 @@ Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
 
 Contribuições em forma de Bitcoin e/ou PRs são muito bem vindas! Peço apenas que antes de trabalhar/enviar uma PR entre em contato comigo para alinharmos as expectativas e approach da implementação.
 
-**Envie contribuições em BTC para:** bc1qjfsqzmhu9na6ark3ldxxqfay8tjk72c67c9qhy
+**Envie contribuições em BTC para:** 
+ - Endereço [SegWit](https://en.wikipedia.org/wiki/SegWit): bc1qjfsqzmhu9na6ark3ldxxqfay8tjk72c67c9qhy
+ - BTC: 18BE5nYMmX91yu26Qh81UaNm7c89MmMj71
 
