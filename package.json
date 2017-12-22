@@ -12,7 +12,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "blinktrade": "0.0.15",
-    "colors": "^1.1.2",
     "gmail-send": "^1.2.11",
     "winston": "^3.0.0-rc1"
   }

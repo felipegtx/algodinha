@@ -2,25 +2,22 @@
 var AlgoDinha = function() { 
     
     const BlinkTradeWS = require("blinktrade").BlinkTradeWS,
-            colors = require("colors"),
             gmailSend = require("gmail-send"),
             enderecoLog = "./log/algodinha.txt",
             { createLogger, format, transports }  = require("winston"),
-            { combine, timestamp, label, prettyPrint } = format,
+            { combine, timestamp, label, printf  } = format,
+            formatoLog = printf(info => {
+                return `[${info.timestamp}] [${info.level}]: ${info.message}`;
+            }),
             log = createLogger({ 
+                format: combine(
+                    timestamp(),
+                    formatoLog
+                ),
                 transports: [
                     new transports.File({ filename: enderecoLog })
                 ] 
             });
-
-    colors.setTheme({
-        erro: ["red", "underline"],
-        aviso: ["yellow", "bold"],
-        ok: ["green", "bold"],
-        comprado: ["blue"],
-        vendido: ["magenta"],
-        titulo: ["white", "bold"]
-    });
     
     const parametrosDefault = {
 
@@ -44,19 +41,20 @@ var AlgoDinha = function() {
         ultimaCompra : {min: 0, max: 0, realizada:false},
         ultimoPln : "",
         instanciaWS : null,
+        heartbeat: 20000,
 
         //////////////////////////////////////////////////////////////////////////
         /// Parâmetros da execução
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 52000,
+        valorMaximoCompra : 53000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
-        valorMinimoCompra : 47000,
+        valorMinimoCompra : 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 3700 + 100,
+        maximoGastos : 3710 + 300,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
@@ -113,9 +111,10 @@ var AlgoDinha = function() {
         return JSON.parse(JSON.stringify(obj));
     }
 
-    function plnErro(str) { 
-        params.ultimoPln = str;
-        log.error(str);
+    function plnErro(str, detalhe) { 
+        var valor = `${str} - Detalhes: ${detalhe}`;
+        params.ultimoPln = valor;
+        log.error(valor);
     }
        
     function pln(str, warn) { 
@@ -153,8 +152,8 @@ var AlgoDinha = function() {
                 pln("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
                 enviaEmail("Ordem de venda " + tipoExecucao + " executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
                 
-                params = (obterVolumeTotal() > 0);
-                if (!params) { 
+                params.comprado = (obterVolumeTotal() > 0);
+                if (!params.comprado) { 
                     
                     /// Remove todas as compras
                     limparCompras();
@@ -302,7 +301,7 @@ var AlgoDinha = function() {
         if (!volume) {
             return;
         }
-        params = true;
+        params.comprado = true;
         if (atualizaUltimaCompra) { 
             params.ultimaCompra.realizada = true;
             params.ultimaCompra.min = valor - params.thresholdRecompraEmBRL;
@@ -386,7 +385,7 @@ var AlgoDinha = function() {
     function adicionarOrdem(preco, volume, tipo, okDel, nokDel) { 
         try{
 
-            if (preco == 0) { 
+            if (params.offline || params.iniciando || !preco || (preco == 0)) { 
                 nokDel({});
                 return;
             }
@@ -442,9 +441,9 @@ var AlgoDinha = function() {
                     }
                     
                     params.offline = false;
-                    pln(colors.grey.italic(" <3  "));
+                    pln(" <3  ");
                     obterWS().heartbeat(() => { 
-                        pln(" <3 ".grey);
+                        pln(" <3 ");
                         params.heartbeatEnviado = false;
                     })
                     .catch((E) => {
@@ -458,7 +457,7 @@ var AlgoDinha = function() {
                     params.offline = true;
                 }
             );
-        }, 10000 /*Every ten seconds*/);
+        }, params.heartbeat);
     }
     
     function atualizarCarteira(dataBase, okDel, nokDel, profundidadeDaCarteira, pagina, carteiraTemporaria) { 
@@ -529,7 +528,7 @@ var AlgoDinha = function() {
     function trataOrdens() { 
 
         var estadoExecucao = publico.status().pln();
-        if (!estadoExecucao) { 
+        if (!estadoExecucao.ok) { 
             return;
         }
     
@@ -541,9 +540,15 @@ var AlgoDinha = function() {
             saldoBRL = estadoExecucao.saldoBRL,
             saldoBTCBRL = estadoExecucao.saldoBTCBRL,
             saldoBrutoBRL = estadoExecucao.saldoBrutoBRL;
+
+        /// Algumas vezes os dados do topo do book fica poluido - IDK why
+        if (!melhorOfertaVendaAtual || !melhorOfertaCompraAtual) { 
+            pln("Topo do book tá cagado", true);
+            return;
+        }
         
         /// Caso já tenhamos uma ordem executada
-        if (params) { 
+        if (params.comprado) { 
             
             pln("Executando comprado...");
 
@@ -618,7 +623,7 @@ var AlgoDinha = function() {
                         }
 
                         pln("- Tentando melhorar média de saída...");
-                        pln("  Adicionando posição por " + melhorOfertaVendaAtual, true);
+                        pln("  Adicionando posição por " + melhorOfertaVendaAtual);
                         var volume = (params.valorOrdem / melhorOfertaVendaAtual);
                         adicionarOrdemCompra(melhorOfertaVendaAtual, volume, (r) => { 
                             if (r) { 
