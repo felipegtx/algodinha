@@ -400,9 +400,9 @@ var AlgoDinha = function() {
                 (ok) => { 
 
                     var tipoOrdem = tipo == "1" ? "compra" : "venda";
-                    enviaEmail("Ordem de " + tipoOrdem + " colocada com sucesso!", "Valor: R$ " + preco + " - Volume: " + volume);
+                    enviaEmail(`Ordem de ${tipoOrdem} colocada com sucesso!`, `Valor: R$ ${preco} - Volume: ${volume}`);
 
-                    pln("Ordem colocada com sucesso!", ok);
+                    pln("Ordem colocada com sucesso!");
                     okDel(ok);
                     pln(""); pln(""); pln("");
                     pln(""); pln(""); pln("");
@@ -543,7 +543,7 @@ var AlgoDinha = function() {
 
         /// Algumas vezes os dados do topo do book fica poluido - IDK why
         if (!melhorOfertaVendaAtual || !melhorOfertaCompraAtual) { 
-            pln("Topo do book tá cagado", true);
+            plnErro("Topo do book tá cagado", estadoExecucao);
             return;
         }
         
@@ -682,7 +682,7 @@ var AlgoDinha = function() {
             add : (detalhe, erro) => { 
                 base.detalhes.push(detalhe);
                 if (erro) { 
-                    this.ok = false;
+                    base.ok = false;
                 }
                 return base;
             },
@@ -702,10 +702,10 @@ var AlgoDinha = function() {
             }, 
             pln : () => { 
                 for (var i=0; i < base.detalhes.length; i++) { 
-                    if (base) { 
+                    if (base.ok) { 
                         pln(base.detalhes[i]);
                     } else { 
-                        pln(base.detalhes[i]);
+                        pln(base.detalhes[i], true);
                     }
                 }
                 return base;
