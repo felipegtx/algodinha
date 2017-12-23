@@ -107,13 +107,11 @@ Por exemplo, no seguinte caso:
 ![image](https://user-images.githubusercontent.com/1022404/34125435-5e516aa0-e41d-11e7-8ffc-3e4fc8e0a797.png)
 
 A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horário.
-```
-dataBase : "2017-12-18 12:22:02"
-```
+
 ```javascript
 //// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
 //// opte por iniciar vendido
-dataBase : "2017-12-19 00:00:00"
+dataBase : "2017-12-18 12:22:02"
 ```
 
 ## Executando
