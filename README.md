@@ -136,6 +136,7 @@ Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
  - **Permitir uso do robô em outras moedas** - Atualmente o robô está "hardwired" para BTC. Seria interessante abstrair as informações de Crypto e Fiat utilizadas.
  - **Refactory** - Este código - até o momento - foi criado praticamente em três noites. Certamente precisaremos limpar/organizar muita coisa por aqui.
  - **Obter valores de operação de forma automática** - Hoje os parâmetros de operação estão codados diretamente nos `parametrosDefault`. O ideal seria que estes dados pudessem ser calculados dinamicamente com base no saldo e limite disponível em Fiat.
+ - **Teste unitário** - Yep. There's none. 
  
  ### Problemas conhecidos
  
