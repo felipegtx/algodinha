@@ -51,7 +51,7 @@ Para que esta infra funcione você precisa apenas criar um arquivo chamado `mail
 Você deve também parametrizar a execução considerando os limites e riscos que você está disposto a correr com a ferramenta. Os principais parâmetros que coordenam a proporção risco/lucro são os seguintes:
 
 #### Limites de operação
-Os parâmetros abaixo limitam a operação do robô fazendo com que nada seja realizada se o mercado estiver acima do `valorMaximoCompra` ou abaixo do `valorMinimoCompra`.
+Os parâmetros abaixo limitam a operação do robô fazendo com que nada seja realizado se o mercado estiver acima do `valorMaximoCompra` ou abaixo do `valorMinimoCompra`.
 ```javascript
 /// Valor máximo para compra de BTC
 valorMaximoCompra : 70000,
@@ -61,10 +61,12 @@ valorMinimoCompra : 30000,
 ```
 
 #### Orçamento
-Os valores definidos nas variáveis abaixo ditam como o robô investirá o capital disponível - *if any*. O robô nunca gastará mais que o estipulado como o `maximoGastos` e gerará ordens de no máximo `valorMaximoOrdem` e, sempre que possível - veja detalhes abaixo - utilizará o `valorOrdem` para estas operações.
+Os valores definidos nas variáveis abaixo ditam como o robô investirá o capital disponível - *if any*. 
+
+O robô nunca gastará mais que o estipulado como o `maximoGastos` e gerará ordens de no máximo `valorMaximoOrdem` e, sempre que possível - veja detalhes abaixo - utilizará o `valorOrdem` para estas operações.
 
 ##### Valor máximo da ordem
-Em uma situação onde for detectado que uma compra foi realizada em um valor superior ao disponível no Mercado Atual, o valor da ordem poderá ser automaticamente ajustado utilizando o percentual de variação detectado (diferença % entre o valor mais alto pago pela fração da crypto e o valor atual da mesma).
+Em uma situação onde for detectado que uma compra foi realizada em um valor superior ao disponível atualmente no mercado o valor da ordem poderá ser automaticamente ajustado utilizando o percentual de variação detectado: *Diferença % entre o valor mais alto pago pela fração da crypto e o valor atual da mesma.*
 
 ```javascript
 /// Valor máximo que o robô está autorizado a gastar
