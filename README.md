@@ -50,32 +50,53 @@ Para que esta infra funcione você precisa apenas criar um arquivo chamado `mail
 ### Parametrização
 Você deve também parametrizar a execução considerando os limites e riscos que você está disposto a correr com a ferramenta. Os principais parâmetros que coordenam a proporção risco/lucro são os seguintes:
 
+#### Limites de operação
+Os parâmetros abaixo limitam a operação do robô fazendo com que nada seja realizada se o mercado estiver acima do `valorMaximoCompra` ou abaixo do `valorMinimoCompra`.
 ```javascript
 /// Valor máximo para compra de BTC
 valorMaximoCompra : 70000,
 
+/// Valor mínimo para compra de BTC (base do túnel de negociação)
+valorMinimoCompra : 30000,
+```
+
+#### Orçamento
+Os valores definidos nas variáveis abaixo ditam como o robô investirá o capital disponível - *if any*. O robô nunca gastará mais que o estipulado como o `maximoGastos` e gerará ordens de no máximo `valorMaximoOrdem` e, sempre que possível - veja detalhes abaixo - utilizará o `valorOrdem` para estas operações.
+
+##### Valor máximo da ordem
+Em uma situação onde for detectado que uma compra foi realizada em um valor superior ao disponível no Mercado Atual, o valor da ordem poderá ser automaticamente ajustado utilizando o percentual de variação detectado (diferença % entre o valor mais alto pago pela fração da crypto e o valor atual da mesma).
+
+```javascript
 /// Valor máximo que o robô está autorizado a gastar
 maximoGastos : 2000,
-
 /// Valor das ordens de compra enviadas pelo robô
 valorOrdem : 200,
+/// Valor máximo de cada ordem de compra. Se este valor for diferente do valor informado para "valorORdem", o rob^
+/// realizará um ajuste no valor pago, acrescentando o percentual de custo atual frente ao custo inicial por BTC até
+/// o limite de gastos definido aqui.
+valorMaximoOrdem : 12,
+```
 
+### Outros dados operacionais
+O robô considera também as informações de quanto você possuía em Fiat na corretora antes de iniciar a operação (`valorInicial`) para detectar possíveis prejuízos e ajustar a forma de operação e valores de ordens. 
+```javascript
+/// Valor inicialmente depositado na corretora em Fiat
+valorInicial : 7000,
+```
+
+Para realização de atualização de valor médio o robô trabalha com um túnel dinâmico secundário que é ajustado baeado no `thresholdRecompraEmBRL`. Este túnel impede que sejam realizadas recompras se a flutuação do mercado não for considerada grande o suficiente - evitando operações sequenciais em valores muito próximos um ao outro. 
+```javascript
 /// Threshold que define o momento de rebalanceamento do valor de saída
 ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
 ///       decidir a melhor hora para sair
 thresholdRecompraEmBRL : 50,
-
-/// Lucro % esperado
-lucroEsperado : 0.01,
-
-//// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
-//// opte por iniciar vendido
-dataBase : "2017-12-19 00:00:00"
 ```
 
-De fato, como regra geral, estes são os únicos parâmetros que você precisaria alterar para realizar a execução.
-
-#### Carteira
+Qual o lucro total esperado após a execução do robô.
+```javascript
+/// Lucro % esperado
+lucroEsperado : 0.01,
+```
 
 Na versão atual você precisa informar a data da sua última venda para que o robô consiga coletar as informações de sua carteira ativa. Para tanto, basta acessar sua conta na corretora encontrar qual a data/horário em que isto aconteceu. 
 
@@ -88,6 +109,11 @@ Por exemplo, no seguinte caso:
 A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horário.
 ```
 dataBase : "2017-12-18 12:22:02"
+```
+```javascript
+//// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
+//// opte por iniciar vendido
+dataBase : "2017-12-19 00:00:00"
 ```
 
 ## Executando
