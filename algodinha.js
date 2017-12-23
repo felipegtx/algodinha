@@ -48,16 +48,24 @@ var AlgoDinha = function() {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 53000,
+        valorMaximoCompra : 59000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
         valorMinimoCompra : 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 3710 + 300,
+        maximoGastos : 7000,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
+
+        /// Valor máximo de cada ordem de compra. Se este valor for diferente do valor informado para "valorORdem", o rob^
+        /// realizará um ajuste no valor pago, acrescentando o percentual de custo atual frente ao custo inicial por BTC até
+        /// o limite de gastos definido aqui.
+        valorMaximoOrdem : 12,
+
+        /// Valor inicialmente depositado na corretora em Fiat
+        valorInicial : 7000,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
         ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
@@ -98,13 +106,24 @@ var AlgoDinha = function() {
             user: params.email.email,
             pass: params.email.appPass,
             to:   params.email.destino,
-            subject: "[Algodinha] " + assunto,
+            subject: `[Algodinha] ${assunto}`,
             text:    texto
         }, function (err, res) {
             if (err) { 
                 pln("Erro ao enviar email:", err, assunto, texto);
             }
         });
+    }
+
+    function obterValorOrdemCompra(melhorValorVenda) { 
+        if (params.valorOrdem == params.valorMaximoOrdem) { 
+            return params.valorOrdem;
+        }
+
+        var valorMaximoPago = obterValorMaiorCompra();
+        var percentualDeAjuste = (valorMaximoPago - melhorValorVenda) / valorMaximoPago;
+        var targetOrdemAtual = params.valorOrdem + (params.valorOrdem * percentualDeAjuste);
+        return Math.min(params.valorMaximoOrdem, targetOrdemAtual);
     }
 
     function clone(obj) { 
@@ -131,6 +150,9 @@ var AlgoDinha = function() {
 
             var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
             var tipoExecucao = parcial ? "parcialmente" : "totalmente";
+            var tipoOrdem = order.Side == "1" ? "compra" : "venda";
+
+            enviaEmail(`Ordem de ${tipoOrdem} ${tipoExecucao} executada!`, `Valor: R$ ${(ordem.LastPx / 1e8)} - Volume: ${disponivel}`);
 
             if (ordem.Side == "1") { 
                 
@@ -144,13 +166,11 @@ var AlgoDinha = function() {
                     
                 }
                 
-                enviaEmail("Ordem de compra " + tipoExecucao + " executada!", "Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
                 adicionarCompra((ordem.LastPx / 1e8), disponivel, 0, true);
 
             } else { 
                 
-                pln("Vendeu", ordem, novoSaldoBRL, params.saldoBRL);
-                enviaEmail("Ordem de venda " + tipoExecucao + " executada!", "Novo saldo: R$" + novoSaldoBRL  + " - Valor: R$ " + (ordem.LastPx / 1e8) + " - Volume: " + disponivel);
+                pln(`Vendeu : ${novoSaldoBRL}`);
                 
                 params.comprado = (obterVolumeTotal() > 0);
                 if (!params.comprado) { 
@@ -210,13 +230,7 @@ var AlgoDinha = function() {
     }
     
     function obterValorTotalGasto() { 
-        
-        if (params.compras && params.compras.length > 0) { 
-            return params.compras.length * params.valorOrdem;
-        }
-    
-        return 0;
-    
+        return params.valorInicial - params.saldoBRL;
     }
     
     function obterValorMedioCompras() { 
@@ -248,7 +262,7 @@ var AlgoDinha = function() {
         var result = Number(Math.round(value + "e" + decimals) + "e-" + decimals);
 
         if (isNaN(result)) { 
-            pln(("Valor não pode ser arredondado: " + value));
+            plnErro(`Valor não pode ser arredondado: ${value}`);
         }
 
         return result;
@@ -283,15 +297,28 @@ var AlgoDinha = function() {
         
         return 0;
     }
+
+    function obterValorMaiorCompra() { 
+        if (params.compras && params.compras.length > 0) { 
+            var maior = 0;
+            for (var i = 0; i < params.compras.length; i++) { 
+                if (maior == 0 || (params.compras[i].valor > maior)) { 
+                    maior = params.compras[i].valor;
+                }
+            }
+            return maior;
+        }
+        return 0;    
+    }
     
     function obterValorMenorCompra() { 
         if (params.compras && params.compras.length > 0) { 
             var menorCompra = 0;
-                for (var i = 0; i < params.compras.length; i++) { 
-                    if (menorCompra == 0 || (params.compras[i].valor < menorCompra)) { 
-                        menorCompra = params.compras[i].valor;
-                    }
+            for (var i = 0; i < params.compras.length; i++) { 
+                if (menorCompra == 0 || (params.compras[i].valor < menorCompra)) { 
+                    menorCompra = params.compras[i].valor;
                 }
+            }
             return menorCompra;
         }
         return 0;    
@@ -384,6 +411,9 @@ var AlgoDinha = function() {
     
     function adicionarOrdem(preco, volume, tipo, okDel, nokDel) { 
         try{
+
+            okDel({});
+            return;
 
             if (params.offline || params.iniciando || !preco || (preco == 0)) { 
                 nokDel({});
@@ -607,6 +637,8 @@ var AlgoDinha = function() {
     
                     /// Gastamos tudo...
                     pln(" - Gastamos todo o orçamento. Agora tem que rezar.");
+                    pln(`   Valor total gasto: R$ ${obterValorTotalGasto()}`);
+                    pln(`   Máximo de gastos: R$ ${params.maximoGastos}`);
     
                 } else { 
     
@@ -623,8 +655,8 @@ var AlgoDinha = function() {
                         }
 
                         pln("- Tentando melhorar média de saída...");
-                        pln("  Adicionando posição por " + melhorOfertaVendaAtual);
-                        var volume = (params.valorOrdem / melhorOfertaVendaAtual);
+                        pln(`  Adicionando posição por ${melhorOfertaVendaAtual} enviando uma ordem de R$ ${obterValorOrdemCompra(melhorOfertaVendaAtual)}`);
+                        var volume = (obterValorOrdemCompra(melhorOfertaVendaAtual) / melhorOfertaVendaAtual);
                         adicionarOrdemCompra(melhorOfertaVendaAtual, volume, (r) => { 
                             if (r) { 
     
@@ -637,11 +669,11 @@ var AlgoDinha = function() {
     
                     } else if (melhorOfertaVendaAtual > params.valorMaximoCompra) { 
 
-                        pln("  Muito caro. Valor máximo para compra: R$ " + params.valorMaximoCompra);
+                        pln(`  Muito caro. Valor máximo para compra: R$ ${params.valorMaximoCompra}`);
                                         
                     } else {
     
-                        pln("  Já temos posição em: R$ " + parseInt(melhorOfertaVendaAtual));
+                        pln(`  Já temos posição em: R$ ${parseInt(melhorOfertaVendaAtual)}`);
     
                     }
                 }
@@ -655,7 +687,7 @@ var AlgoDinha = function() {
    
             if (melhorOfertaVendaAtual <= params.valorMaximoCompra) { 
     
-                pln("Comprando por " + melhorOfertaVendaAtual, true);
+                pln(`Comprando por R$ ${melhorOfertaVendaAtual}`);
                 var volume = (params.valorOrdem / melhorOfertaVendaAtual);
                 adicionarOrdemCompra(melhorOfertaVendaAtual, volume, (r) => { 
                     if (r) { 
@@ -669,7 +701,7 @@ var AlgoDinha = function() {
     
             } else { 
     
-                pln("Muito caro. Melhor oferta atual: " + melhorOfertaVendaAtual + ".");
+                pln(`Muito caro. Melhor oferta atual: R$ ${melhorOfertaVendaAtual}.`);
     
             }
         }
@@ -687,17 +719,20 @@ var AlgoDinha = function() {
                 return base;
             },
             html : () => { 
-                var txt = "<html><head><title>Algodinha</title>" + 
-                            "<meta http-equiv=\"refresh\" content=\"10\">" + 
-                            "<meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black\">" + 
-                            "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\">" + 
-                            "<meta name=\"viewport\" content=\"width=device-width\">" + 
-                            "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.js\"></script><body><div>";
+                var txt = `<html><head><title>Algodinha</title> 
+                            <meta http-equiv="refresh" content="10"> 
+                            <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+                            <meta name="apple-mobile-web-app-capable" content="yes">
+                            <meta name="viewport" content="width=device-width">
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.js"></script><body><div>`;
+                
                 for (var i=0; i < base.detalhes.length; i++) { 
-                    txt += base.detalhes[i] + "<br>";
+                    txt +=  `${base.detalhes[i]} <br> `;
                 }
-                txt += "<strong>Última mensagem: </strong>" + params.ultimoPln;
-                txt += "</div>" + getHtmlChart() + "</body></html>";
+
+                txt += `<strong>Última mensagem: </strong> ${params.ultimoPln}
+                        </div>${getHtmlChart()}</body></html>`;
+
                 return txt;
             }, 
             pln : () => { 
@@ -753,33 +788,33 @@ var AlgoDinha = function() {
             dados = JSON.stringify(resultado);
         }
 
-        return "<div style='width:75%;'><canvas id='myChart' width='800' height='600'></canvas></div>" + 
-                "<script>" + 
-                "var ctx = document.getElementById('myChart').getContext('2d');" + 
-                "var myChart = Chart.Line(ctx, {" + 
-                "    data: " + dados +  "," + 
-                "    options: {" + 
-                "       responsive: false," + 
-                "       title : { display:true, text:'Posição atual' }, " + 
-                "       scales: {" +
-                "           xAxes: [{" +
-                "               display: true," + 
-                "               scaleLabel: {" +
-                "                   display: true," +
-                "                   labelString: 'Valor BTC'" +
-                "               }" +
-                "           }]," +
-                "           yAxes: [{" +
-                "               display: true," +
-                "               scaleLabel: {" +
-                "                   display: true," +
-                "                   labelString: 'Volume'" +
-                "               }" +
-                "           }]" +
-                "       }" +
-                "    } " + 
-                "});" + 
-                "</script>";
+        return `<div style='width:75%;'><canvas id='myChart' width='800' height='600'></canvas></div> 
+                <script> 
+                var ctx = document.getElementById('myChart').getContext('2d'); 
+                var myChart = Chart.Line(ctx, { 
+                   data:  ${dados}, 
+                   options: { 
+                      responsive: false, 
+                      title : { display:true, text:'Posição atual' },  
+                      scales: {
+                          xAxes: [{
+                              display: true, 
+                              scaleLabel: {
+                                  display: true,
+                                  labelString: 'Valor BTC'
+                              }
+                          }],
+                          yAxes: [{
+                              display: true,
+                              scaleLabel: {
+                                  display: true,
+                                  labelString: 'Volume'
+                              }
+                          }]
+                      }
+                   }  
+                }); 
+                </script>`;
     }
   
     var publico = { 
@@ -828,25 +863,25 @@ var AlgoDinha = function() {
                         saldoBrutoBRL : (params.saldoBRL + saldoBTCBRL)
                     })
                     .add("STATUS ATUAL DA CARTEIRA:")
-                    .add("    - Saldo atual: R$ " + resultado.saldoBRL.toFixed(2))
-                    .add("    - Saldo BTC em BRL: R$ " + resultado.saldoBTCBRL.toFixed(2))
-                    .add("    - Saldo total atual (Bruto): R$ " + resultado.saldoBrutoBRL.toFixed(2))
-                    .add("    - Saldo total atual (Líquido): R$ " + (resultado.saldoBrutoBRL - (resultado.saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2))
+                    .add(`    - Saldo atual: R$ ${resultado.saldoBRL.toFixed(2)}`)
+                    .add(`    - Saldo BTC em BRL: R$ ${resultado.saldoBTCBRL.toFixed(2)}`)
+                    .add(`    - Saldo total atual (Bruto): R$ ${resultado.saldoBrutoBRL.toFixed(2)}`)
+                    .add(`    - Saldo total atual (Líquido): R$ ${(resultado.saldoBrutoBRL - (resultado.saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2)}`)
                     .add("")
-                    .add("    - Valor médio das compras: R$ " + resultado.valorMedioDaCarteira.toFixed(3))
-                    .add("    - Volume total: BTC " + resultado.volumeTotal)
-                    .add("    - Target de venda: R$ " + resultado.valorVenda.toFixed(2))
-                    .add("    - Volume com delta positivo: BTC " + podemosVenderPor(melhorOfertaCompraAtual))
-                    .add("    - Delta de saída em: " + (((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2) + "%")
-                    .add("    - Túnel: Min: " + params.ultimaCompra.min + ", Max: " + params.ultimaCompra.max)
+                    .add(`    - Valor médio das compras: R$ ${resultado.valorMedioDaCarteira.toFixed(3)}`)
+                    .add(`    - Volume total: BTC ${resultado.volumeTotal}`)
+                    .add(`    - Target de venda: R$ ${resultado.valorVenda.toFixed(2)}`)
+                    .add(`    - Volume com delta positivo: BTC ${podemosVenderPor(melhorOfertaCompraAtual)}`)
+                    .add(`    - Delta de saída em: ${(((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2)}%`)
+                    .add(`    - Túnel: Min: ${params.ultimaCompra.min}, Max: ${params.ultimaCompra.max}`)
                     .add("")
-                    .add("    - Valor máximo para compra: R$ " + params.valorMaximoCompra)
-                    .add("    - Máximo de gastos: R$ " + params.maximoGastos)
-                    .add("    - Valor investido: R$ " + obterValorTotalGasto())
+                    .add(`    - Valor máximo para compra: R$ ${params.valorMaximoCompra}`)
+                    .add(`    - Máximo de gastos: R$ ${params.maximoGastos}`)
+                    .add(`    - Valor investido: R$ ${obterValorTotalGasto()}`)
                     .add("")
                     .add("STATUS ATUAL DO MERCADO:")
-                    .add("    - Compra: R$ " + resultado.melhorOfertaCompraAtual.toFixed(3))
-                    .add("    - Venda: R$ " + resultado.melhorOfertaVendaAtual.toFixed(3))
+                    .add(`    - Compra: R$ ${resultado.melhorOfertaCompraAtual.toFixed(3)}`)
+                    .add(`    - Venda: R$ ${resultado.melhorOfertaVendaAtual.toFixed(3)}`)
                     .add("");
             
             } catch (Exc) { 
@@ -893,8 +928,8 @@ var AlgoDinha = function() {
                         atualizarCarteira(dataBase, () => {
 
                             ws.executionReport()
-                            .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
-                            .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
+                                .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
+                                .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
                             
                             pln("Obtendo snapshot do book...");
                             ws.subscribeOrderbook([params.simboloBTC])
