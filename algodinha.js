@@ -32,7 +32,7 @@ var AlgoDinha = function() {
         comprado : false,
         subindo : false,
         saldoBRL : 0,
-        profundidadeBuscaCarteira : 5000,
+        profundidadeBuscaCarteira : 10000,
         offline : false,
         heartbeatEnviado : false,
         simboloBTC : "BTCBRL",
@@ -150,7 +150,7 @@ var AlgoDinha = function() {
 
             var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
             var tipoExecucao = parcial ? "parcialmente" : "totalmente";
-            var tipoOrdem = order.Side == "1" ? "compra" : "venda";
+            var tipoOrdem = ordem.Side == "1" ? "compra" : "venda";
 
             enviaEmail(`Ordem de ${tipoOrdem} ${tipoExecucao} executada!`, `Valor: R$ ${(ordem.LastPx / 1e8)} - Volume: ${disponivel}`);
 
@@ -411,9 +411,6 @@ var AlgoDinha = function() {
     
     function adicionarOrdem(preco, volume, tipo, okDel, nokDel) { 
         try{
-
-            okDel({});
-            return;
 
             if (params.offline || params.iniciando || !preco || (preco == 0)) { 
                 nokDel({});
