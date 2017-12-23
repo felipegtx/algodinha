@@ -54,7 +54,7 @@ var AlgoDinha = function() {
         valorMinimoCompra : 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 7000,
+        maximoGastos : 6400,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
@@ -874,7 +874,7 @@ var AlgoDinha = function() {
                     .add("")
                     .add(`    - Valor máximo para compra: R$ ${params.valorMaximoCompra}`)
                     .add(`    - Máximo de gastos: R$ ${params.maximoGastos}`)
-                    .add(`    - Valor investido: R$ ${obterValorTotalGasto()}`)
+                    .add(`    - Valor investido: R$ ${obterValorTotalGasto().toFixed(2)}`)
                     .add("")
                     .add("STATUS ATUAL DO MERCADO:")
                     .add(`    - Compra: R$ ${resultado.melhorOfertaCompraAtual.toFixed(3)}`)
