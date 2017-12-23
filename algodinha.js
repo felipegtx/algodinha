@@ -708,15 +708,21 @@ var AlgoDinha = function() {
         var base = {
             ok : true, 
             detalhes: [],
+            titulo: "",
             add : (detalhe, erro) => { 
                 base.detalhes.push(detalhe);
                 if (erro) { 
                     base.ok = false;
+                    base.tit(detalhe);
                 }
                 return base;
             },
+            tit:function(txt) { 
+                base.titulo = txt;
+                return base;
+            },
             html : () => { 
-                var txt = `<html><head><title>Algodinha</title> 
+                var txt = `<html><head><title>Algodinha - ${base.titulo}</title> 
                             <meta http-equiv="refresh" content="10"> 
                             <meta name="apple-mobile-web-app-status-bar-style" content="black"> 
                             <meta name="apple-mobile-web-app-capable" content="yes">
@@ -859,6 +865,7 @@ var AlgoDinha = function() {
                         saldoBTCBRL : saldoBTCBRL,
                         saldoBrutoBRL : (params.saldoBRL + saldoBTCBRL)
                     })
+                    .tit(`Saldo R$ ${resultado.saldoBrutoBRL.toFixed(3)}`)
                     .add("STATUS ATUAL DA CARTEIRA:")
                     .add(`    - Saldo atual: R$ ${resultado.saldoBRL.toFixed(2)}`)
                     .add(`    - Saldo BTC em BRL: R$ ${resultado.saldoBTCBRL.toFixed(2)}`)
