@@ -126,8 +126,10 @@ node algodinha.js
 
 ## Status de execução
 
-Se você quiser acompanhar o status do robô enquanto estiver longe do seu servidor/computador basta acessar o endereço: `http://ip_da_sua_maquina:1337/`
+Se você quiser acompanhar o status do robô enquanto estiver longe do seu servidor/computador basta acessar o endereço: `http://ip_da_sua_maquina:1337/` (ou localmente em `http://localhost:1337/`).
 
+### Logs
+Os logs são salvos em disco no caminho `./log/algodinha.txt`. Recomendo o uso do [Baretail free](https://www.baremetalsoft.com/baretail/) para acompanhar - inclusive disponibilizei no projeto um arquivo de preferências `baretail.udm` com o highlight dos pricipais eventos do log.
 
 ## Roadmap
 
