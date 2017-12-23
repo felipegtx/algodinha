@@ -48,7 +48,7 @@ var AlgoDinha = function() {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 59000,
+        valorMaximoCompra : 40000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
         valorMinimoCompra : 30000,
@@ -868,7 +868,7 @@ var AlgoDinha = function() {
                     .add(`    - Valor médio das compras: R$ ${resultado.valorMedioDaCarteira.toFixed(3)}`)
                     .add(`    - Volume total: BTC ${resultado.volumeTotal}`)
                     .add(`    - Target de venda: R$ ${resultado.valorVenda.toFixed(2)}`)
-                    .add(`    - Volume com delta positivo: BTC ${podemosVenderPor(melhorOfertaCompraAtual)}`)
+                    .add(`    - Volume com delta positivo: BTC ${podemosVenderPor(melhorOfertaCompraAtual).toFixed(8)}`)
                     .add(`    - Delta de saída em: ${(((resultado.valorVenda - resultado.melhorOfertaCompraAtual)/resultado.valorVenda)*100).toFixed(2)}%`)
                     .add(`    - Túnel: Min: ${params.ultimaCompra.min}, Max: ${params.ultimaCompra.max}`)
                     .add("")
