@@ -116,6 +116,8 @@ A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horári
 dataBase : "2017-12-18 12:22:02"
 ```
 
+Para ignorar a carteira atual na corretora basta informar `null` como valor para `dataBase`. É importante notar que isto habilitará também a venda parcial de suas cryptos.
+
 ## Executando
 
 Para executar, basta utilizar o seguinte comando:
