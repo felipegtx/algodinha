@@ -48,13 +48,13 @@ var AlgoDinha = function() {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra : 40000,
+        valorMaximoCompra : 55000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
         valorMinimoCompra : 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos : 6400,
+        maximoGastos : 6800,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem : 10,
@@ -75,8 +75,9 @@ var AlgoDinha = function() {
         /// Lucro % esperado
         lucroEsperado : 0.01,
 
-        //// Data da última venda realizada na plataforma ou, qualquer data no futuro caso vc
-        //// opte por iniciar vendido
+        //// Data da última venda realizada na plataforma ou nulo caso vc
+        //// opte por iniciar vendido e ignorar a carteira da corretora
+        ////        - dataBase : null
         dataBase : "2017-12-19 11:15:21"
 
         //////////////////////////////////////////////////////////////////////////
@@ -99,6 +100,33 @@ var AlgoDinha = function() {
         }
         
         return params.instanciaWS;
+    }
+
+    function carregarBook(ws) { 
+        ws.executionReport()
+            .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
+            .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
+    
+        pln("Obtendo snapshot do book...");
+        ws.subscribeOrderbook([params.simboloBTC])
+            .on("OB:NEW_ORDER", atualizaBook)
+            .on("OB:UPDATE_ORDER", atualizaBook)
+            .then((fullBook) => { 
+            
+                pln("Sucesso!");
+                params.iniciando = false;
+                params.offline = false;
+                enviarBatida();
+                var dadosDoBook = fullBook.MDFullGrp[params.simboloBTC];
+                params.book = { asks:dadosDoBook.asks[0], bids:dadosDoBook.bids[0] };
+                trataOrdens();
+
+            })
+            .catch((EE) => {
+                plnErro("Erro na assinatura do book.", EE);
+                params.iniciando = false;
+                publico.iniciar();
+            });
     }
 
     function enviaEmail(assunto, texto) { 
@@ -158,13 +186,18 @@ var AlgoDinha = function() {
                 
                 var saldoAnterior = obterVolumeTotal();
                 var disponivel = ((extrato.Available.BTC ? extrato.Available.BTC : extrato[params.idCorretora].BTC) / 1e8);
+                var executado = ordem.LastShares / 1e8;
                 
-                if (saldoAnterior > 0) { 
-                    
-                    var executado = ordem.LastShares / 1e8;
+                if (parametrosDefault.dataBase === null) { 
+
+                    disponivel = executado;
+
+                } else if (saldoAnterior > 0) { 
+
                     disponivel = (disponivel + executado) - (saldoAnterior + executado);
-                    
+
                 }
+                
                 
                 adicionarCompra((ordem.LastPx / 1e8), disponivel, 0, true);
 
@@ -579,22 +612,19 @@ var AlgoDinha = function() {
             
             pln("Executando comprado...");
 
-            ///////////////////////////////////////////////////////////////////////////////////////////
-            // var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
-            // if (volumeQuePodeSerVendido > 0) { 
+            var iniciaComprado = (parametrosDefault.dataBase === null);
+            var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
+            if ((iniciaComprado === true) && (volumeQuePodeSerVendido > 0)) { 
 
-            //     pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido));
-            //     adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, (r) => { 
-            //         if (r) { 
-            //             limparCompras(melhorOfertaCompraAtual);
-            //         }
-            //     }, () => { });
+                pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido));
+                adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, (r) => { 
+                    if (r) { 
+                        limparCompras(melhorOfertaCompraAtual);
+                    }
+                }, () => { });
 
-            // } 
-            // else 
-            ///////////////////////////////////////////////////////////////////////////////////////////
-
-            if (melhorOfertaCompraAtual > valorVenda) { 
+            } 
+            else if (melhorOfertaCompraAtual > valorVenda) { 
                 if (params.subindo) { 
                     if (params.ultimaMelhorOferta <= melhorOfertaCompraAtual) { 
     
@@ -852,12 +882,14 @@ var AlgoDinha = function() {
                 }
 
                 var melhorOfertaCompraAtual = o.bids[0],
-                    saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual);
+                    saldoBTCBRL = (volumeTotal * melhorOfertaCompraAtual),
+                    valorMedioCompras = obterValorMedioCompras();
 
                 resultado
                     .ext({
                         valorVenda : obterValorVenda(),
-                        valorMedioDaCarteira : obterValorVendaPara(obterValorMedioCompras()),
+                        valorMedioDaCarteira : obterValorVendaPara(valorMedioCompras),
+                        valorMedioDaCarteiraReal : valorMedioCompras,
                         melhorOfertaCompraAtual : melhorOfertaCompraAtual,
                         melhorOfertaVendaAtual : o.asks[0],
                         volumeTotal : volumeTotal,
@@ -872,7 +904,7 @@ var AlgoDinha = function() {
                     .add(`    - Saldo total atual (Bruto): R$ ${resultado.saldoBrutoBRL.toFixed(2)}`)
                     .add(`    - Saldo total atual (Líquido): R$ ${(resultado.saldoBrutoBRL - (resultado.saldoBrutoBRL * params.taxaDaCorretora)).toFixed(2)}`)
                     .add("")
-                    .add(`    - Valor médio das compras: R$ ${resultado.valorMedioDaCarteira.toFixed(3)}`)
+                    .add(`    - Valor médio das compras: R$ ${resultado.valorMedioDaCarteira.toFixed(3)} - Real:${resultado.valorMedioDaCarteiraReal.toFixed(3)}`)
                     .add(`    - Volume total: BTC ${resultado.volumeTotal}`)
                     .add(`    - Target de venda: R$ ${resultado.valorVenda.toFixed(2)}`)
                     .add(`    - Volume com delta positivo: BTC ${podemosVenderPor(melhorOfertaCompraAtual).toFixed(8)}`)
@@ -927,46 +959,28 @@ var AlgoDinha = function() {
                     })
                     .then((logged) => {
                 
-                        pln("Atualizando a carteira...");
-                        var dataBase = new Date(params.dataBase);
-                        atualizarCarteira(dataBase, () => {
-
-                            ws.executionReport()
-                                .on("EXECUTION_REPORT:PARTIAL", execucaoParcial)
-                                .on("EXECUTION_REPORT:EXECUTION", execucaoTotal);
+                        if (parametrosDefault.dataBase === null) { 
                             
-                            pln("Obtendo snapshot do book...");
-                            ws.subscribeOrderbook([params.simboloBTC])
-                                .on("OB:NEW_ORDER", atualizaBook)
-                                .on("OB:UPDATE_ORDER", atualizaBook)
-                                .then((fullBook) => { 
-                                
-                                    pln("Sucesso!");
-                                    params.iniciando = false;
-                                    params.offline = false;
-                                    enviarBatida();
-                                    var dadosDoBook = fullBook.MDFullGrp[params.simboloBTC];
-                                    params.book = { asks:dadosDoBook.asks[0], bids:dadosDoBook.bids[0] };
-                                    trataOrdens();
-                        
-                                })
-                                .catch((EE) => {
-                                    plnErro("Erro na assinatura do book.", EE);
-                                    params.iniciando = false;
-                                    publico.iniciar();
-                                });
+                            carregarBook(ws);
 
-                    }, () => {
-                        plnErro("Problema ao obter carteira", e);
+                        } else { 
+
+                            pln("Atualizando a carteira...");
+                            var dataBase = new Date(params.dataBase);
+                            atualizarCarteira(dataBase, () => {
+                                carregarBook(ws);
+                            }, () => {
+                                plnErro("Problema ao obter carteira", e);
+                                params.iniciando = false;
+                                publico.iniciar();
+                            });
+                        }
+                
+                    }).catch((e) => { 
+                        plnErro("Problema ao atualizar posição/carteira", e);
                         params.iniciando = false;
                         publico.iniciar();
                     });
-                
-                }).catch((e) => { 
-                    plnErro("Problema ao atualizar posição/carteira", e);
-                    params.iniciando = false;
-                    publico.iniciar();
-                });
 
             })
             .catch((e) => { 
