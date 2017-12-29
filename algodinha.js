@@ -409,8 +409,6 @@ var AlgoDinha = function () {
     }
 
     function adicionarOrdemCompra(preco, volume, okDel, nokDel) {
-        plnErro("Não podemos adicionar OC");
-        return;
         adicionarOrdem(preco, volume, "1", okDel, nokDel);
     }
 
