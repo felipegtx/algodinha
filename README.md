@@ -116,7 +116,19 @@ A data seria `12/18/2017, 10:22:02 AM`, adicionados `duas horas` do fuso horári
 dataBase : "2017-12-18 12:22:02"
 ```
 
-Para ignorar a carteira atual na corretora basta informar `null` como valor para `dataBase`. É importante notar que isto habilitará também a venda parcial de suas cryptos.
+Para ignorar a carteira atual na corretora basta informar `true` como valor para `iniciaComprado`. 
+
+```javascript
+/// Caso queira que o robô ignore o valor `dataBase` e inicie uma carteira nova, altere este valor para `true`
+iniciaComprado: false
+```
+
+Para permitir a venda parcial de suas cryptos, altere o valor da variável `vendaParcial` para `true`.
+
+```javascript
+/// Caso queira que o robô ignore o valor `dataBase` e inicie uma carteira nova, altere este valor para `true`
+vendaParcial: false
+```
 
 ## Executando
 
@@ -138,7 +150,7 @@ Os logs são salvos em disco no caminho `./log/algodinha.txt`. Recomendo o uso d
 Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
 
  - **Cancelar ordem que emperrar no book** - Cancelar a ordem quando ela passar `X` segundos no book sem executar.
- - **Refazer saldo na venda parcial** - Quando o algoritmo decidir executar uma venda parcial, é preciso considerar este déficit de volume no saldo atual. É precisamos alterar também lógica do método `obterValorTotalGasto()` para refletir isso de forma dinâmica. (Feature de execução parcial foi comentada no código por este motivo.)
+ - **Refazer saldo na venda parcial** - Apesar de poder ser habilitado via `vendaParcial`, esta rotina ainda está bem crua. Acredito que Teste Unitário seja um bom approach para validar a lógica em uso de forma a comprovar a eficiencia desta rotina.
  - **Permitir uso do robô em outras moedas** - Atualmente o robô está "hardwired" para BTC. Seria interessante abstrair as informações de Crypto e Fiat utilizadas.
  - **Refactory** - Este código - até o momento - foi criado praticamente em três noites. Certamente precisaremos limpar/organizar muita coisa por aqui.
  - **Obter valores de operação de forma automática** - Hoje os parâmetros de operação estão codados diretamente nos `parametrosDefault`. O ideal seria que estes dados pudessem ser calculados dinamicamente com base no saldo e limite disponível em Fiat.

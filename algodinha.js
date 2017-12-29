@@ -65,13 +65,13 @@ var AlgoDinha = function () {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra: 55000,
+        valorMaximoCompra: 52000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
         valorMinimoCompra: 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos: 0,
+        maximoGastos: 7000,
 
         /// Valor das ordens de compra enviadas pelo robô
         valorOrdem: 10,
@@ -82,7 +82,7 @@ var AlgoDinha = function () {
         valorMaximoOrdem: 12,
 
         /// Valor inicialmente depositado na corretora em Fiat
-        valorInicial: 7000,
+        valorInicial: 7198.63,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
         ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
@@ -92,10 +92,14 @@ var AlgoDinha = function () {
         /// Lucro % esperado
         lucroEsperado: 0.01,
 
-        //// Data da última venda realizada na plataforma ou nulo caso vc
-        //// opte por iniciar vendido e ignorar a carteira da corretora
-        ////        - dataBase : null
-        dataBase: "2017-12-19 11:15:21"
+        //// Data da última venda realizada na plataforma
+        dataBase: "2017-12-19 11:15:21",
+
+        /// Caso queira que o robô ignore o valor `dataBase` e inicie uma carteira nova, altere este valor para `true`
+        iniciaComprado: false,
+
+        /// Habilita o robô para operar com venda/lucro parcial
+        vendaParcial: true
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -201,6 +205,8 @@ var AlgoDinha = function () {
             var novoSaldoBRL = ((extrato.Available.BTC ? extrato.Available.BRL : extrato[params.idCorretora].BRL) / 1e8);
             var tipoExecucao = parcial ? "parcialmente" : "totalmente";
             var tipoOrdem = ordem.Side == "1" ? "compra" : "venda";
+            var valorOrdem = (ordem.LastPx / 1e8);
+            var executado = (ordem.LastShares / 1e8);
 
             enviaEmail(`Ordem de ${tipoOrdem} ${tipoExecucao} executada!`, `Valor: R$ ${(ordem.LastPx / 1e8)} - Volume: ${disponivel}`);
 
@@ -208,9 +214,8 @@ var AlgoDinha = function () {
 
                 var saldoAnterior = obterVolumeTotal();
                 var disponivel = ((extrato.Available.BTC ? extrato.Available.BTC : extrato[params.idCorretora].BTC) / 1e8);
-                var executado = ordem.LastShares / 1e8;
 
-                if (parametrosDefault.dataBase === null) {
+                if (parametrosDefault.iniciaComprado === true) {
 
                     disponivel = executado;
 
@@ -221,13 +226,14 @@ var AlgoDinha = function () {
                 }
 
 
-                adicionarCompra((ordem.LastPx / 1e8), disponivel, 0, true);
+                adicionarCompra(valorOrdem, disponivel, 0, true);
 
             } else {
 
                 pln(`Vendeu : ${novoSaldoBRL}`);
 
                 params.comprado = (obterVolumeTotal() > 0);
+                parametrosDefault.valorInicial = (params.valorInicial += (valorOrdem * executado));
                 if (!params.comprado) {
 
                     /// Remove todas as compras
@@ -285,7 +291,9 @@ var AlgoDinha = function () {
     }
 
     function obterValorTotalGasto() {
-        return params.valorInicial - params.saldoBRL;
+        /// TODO: Isto provavelmente precisará ser revisto, visto que o lucro na realidade é apenas o % de variação sobre o preço de compra.
+        ///       Por enquanto ficará assim para impedir o reinvestimento automático.
+        return (params.valorInicial - params.saldoBRL);
     }
 
     function obterValorMedioCompras() {
@@ -293,7 +301,7 @@ var AlgoDinha = function () {
         if (params.compras && params.compras.length > 0) {
             var valorTotal = 0;
             for (var i = 0; i < params.compras.length; i++) {
-                if (!isNaN(params.compras[i].volume)) {
+                if (!isNaN(params.compras[i].volume) && (params.compras[i].valor > 0)) {
                     valorTotal += params.compras[i].valor * params.compras[i].volume;
                 }
             }
@@ -401,6 +409,8 @@ var AlgoDinha = function () {
     }
 
     function adicionarOrdemCompra(preco, volume, okDel, nokDel) {
+        plnErro("Não podemos adicionar OC");
+        return;
         adicionarOrdem(preco, volume, "1", okDel, nokDel);
     }
 
@@ -408,7 +418,7 @@ var AlgoDinha = function () {
         if (oferta) {
             if (params.compras && params.compras.length > 0) {
                 for (var i = 0; i < params.compras.length; i++) {
-                    if (obterValorVendaPara(params.compras[i].valor) < oferta) {
+                    if ((params.compras[i].valor > 0) && obterValorVendaPara(params.compras[i].valor) < oferta) {
                         params.compras[i].valor = 0;
                         params.compras[i].volume = 0;
                         params.compras[i].volumeOriginal = 0;
@@ -459,7 +469,7 @@ var AlgoDinha = function () {
             var volumeQuePodeSerVendidoComLucro = 0;
             for (var i = 0; i < params.compras.length; i++) {
                 var compra = params.compras[i];
-                if (obterValorVendaPara(compra.valor) < preco) {
+                if ((compra.valor > 0) && obterValorVendaPara(compra.valor) < preco) {
                     volumeQuePodeSerVendidoComLucro += params.compras[i].volume;
                 }
             }
@@ -657,9 +667,9 @@ var AlgoDinha = function () {
 
             pln("Executando comprado...");
 
-            var iniciaComprado = (parametrosDefault.dataBase === null);
+            var vendaParcial = parametrosDefault.vendaParcial;
             var volumeQuePodeSerVendido = podemosVenderPor(melhorOfertaCompraAtual);
-            if ((iniciaComprado === true) && (volumeQuePodeSerVendido > 0)) {
+            if ((vendaParcial === true) && (volumeQuePodeSerVendido > 0)) {
 
                 pln(("Desfazendo de volume com lucro: " + volumeQuePodeSerVendido));
                 adicionarOrdemVenda(melhorOfertaCompraAtual, volumeQuePodeSerVendido, (r) => {
@@ -855,13 +865,15 @@ var AlgoDinha = function () {
 
             for (var i = 0; i < compras.length; i++) {
                 var compra = compras[i];
-                var valorCompra = compra.valor.toFixed("2");
-                var volume = compra.volume.toFixed(8);
-                resultado.labels.push(valorCompra);
-                resultado.datasets[0].data.push({
-                    x: valorCompra,
-                    y: volume
-                });
+                if (compra.valor > 0) { 
+                    var valorCompra = compra.valor.toFixed("2");
+                    var volume = compra.volume.toFixed(8);
+                    resultado.labels.push(valorCompra);
+                    resultado.datasets[0].data.push({
+                        x: valorCompra,
+                        y: volume
+                    });
+                }
             }
 
             dados = JSON.stringify(resultado);
@@ -1008,7 +1020,7 @@ var AlgoDinha = function () {
                         })
                         .then((logged) => {
 
-                            if (parametrosDefault.dataBase === null) {
+                            if (parametrosDefault.iniciaComprado === true) {
 
                                 carregarBook(ws);
 
