@@ -80,9 +80,9 @@ valorMaximoOrdem : 12,
 ```
 
 ### Outros dados operacionais
-O robô considera também as informações de quanto você possuía em Fiat na corretora antes de iniciar a operação (`valorInicial`) para detectar possíveis prejuízos e ajustar a forma de operação e valores de ordens. 
+O robô considera também as informações de quanto você possuía em fiat na corretora antes de iniciar a operação (`valorInicial`) para detectar possíveis prejuízos e ajustar a forma de operação e valores de ordens. 
 ```javascript
-/// Valor inicialmente depositado na corretora em Fiat
+/// Valor inicialmente depositado na corretora em fiat
 valorInicial : 7000,
 ```
 
@@ -145,18 +145,7 @@ Se você quiser acompanhar o status do robô enquanto estiver longe do seu servi
 ### Logs
 Os logs são salvos em disco no caminho `./log/algodinha.txt`. Recomendo o uso do [Baretail free](https://www.baremetalsoft.com/baretail/) para acompanhar - inclusive disponibilizei no projeto um arquivo de preferências `baretail.udm` com o highlight dos pricipais eventos do log.
 
-## Roadmap
-
-Abaixo a lista de features que pretendo colocar no robô - PRs são bem vindos!
-
- - **Cancelar ordem que emperrar no book** - Cancelar a ordem quando ela passar `X` segundos no book sem executar.
- - **Refazer saldo na venda parcial** - Apesar de poder ser habilitado via `vendaParcial`, esta rotina ainda está bem crua. Acredito que Teste Unitário seja um bom approach para validar a lógica em uso de forma a comprovar a eficiencia desta rotina.
- - **Permitir uso do robô em outras moedas** - Atualmente o robô está "hardwired" para BTC. Seria interessante abstrair as informações de Crypto e Fiat utilizadas.
- - **Refactory** - Este código - até o momento - foi criado praticamente em três noites. Certamente precisaremos limpar/organizar muita coisa por aqui.
- - **Obter valores de operação de forma automática** - Hoje os parâmetros de operação estão codados diretamente nos `parametrosDefault`. O ideal seria que estes dados pudessem ser calculados dinamicamente com base no saldo e limite disponível em Fiat.
- - **Teste unitário** - Yep. There's none. 
- 
- ### Problemas conhecidos
+### Problemas conhecidos
  
   - **Demora na inicialização:** Em alguns momentos o snapshot do book pode demorar muito para chegar. É uma característica da infra da Blinktrade. Se isso acontecer com você (observável pela demora em iniciar o robô), basta reiniciar o robô.
   - **Reconexão:** O processo de reconexão ainda é bem arcaico. No estado atual, não recomendo que você deixe o robô executando sem supervisão.

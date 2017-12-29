@@ -81,7 +81,7 @@ var AlgoDinha = function () {
         /// o limite de gastos definido aqui.
         valorMaximoOrdem: 12,
 
-        /// Valor inicialmente depositado na corretora em Fiat
+        /// Valor inicialmente depositado na corretora em fiat
         valorInicial: 7198.63,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
