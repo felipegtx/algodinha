@@ -65,16 +65,16 @@ var AlgoDinha = function () {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra: 52000,
+        valorMaximoCompra: 48000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
         valorMinimoCompra: 30000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos: 7000,
+        maximoGastos: 0,
 
         /// Valor das ordens de compra enviadas pelo robô
-        valorOrdem: 10,
+        valorOrdem: 9,
 
         /// Valor máximo de cada ordem de compra. Se este valor for diferente do valor informado para "valorORdem", o rob^
         /// realizará um ajuste no valor pago, acrescentando o percentual de custo atual frente ao custo inicial por BTC até
@@ -82,7 +82,7 @@ var AlgoDinha = function () {
         valorMaximoOrdem: 12,
 
         /// Valor inicialmente depositado na corretora em fiat
-        valorInicial: 7198.63,
+        valorInicial: 7307,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
         ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
@@ -99,7 +99,7 @@ var AlgoDinha = function () {
         iniciaComprado: false,
 
         /// Habilita o robô para operar com venda/lucro parcial
-        vendaParcial: true
+        vendaParcial: false
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -853,10 +853,17 @@ var AlgoDinha = function () {
             var resultado = {
                 labels: [],
                 datasets: [{
-                    label: ["Distribuição: Volume/Valor"],
+                    label: ["Distribuição: Volume/Valor (compra)"],
                     fill: false,
                     backgroundColor: 'rgb(54, 162, 235)',
                     borderColor: 'rgb(54, 162, 235)',
+                    data: []
+                },
+                {
+                    label: ["Distribuição: Volume/Valor (venda)"],
+                    fill: false,
+                    backgroundColor: 'rgb(30, 200, 235)',
+                    borderColor: 'rgb(30, 200, 235)',
                     data: []
                 }]
             };
@@ -866,11 +873,22 @@ var AlgoDinha = function () {
                 if (compra.valor > 0) { 
                     var valorCompra = compra.valor.toFixed("2");
                     var volume = compra.volume.toFixed(8);
+
+                    /// Valor real
                     resultado.labels.push(valorCompra);
                     resultado.datasets[0].data.push({
                         x: valorCompra,
                         y: volume
                     });
+
+                    /// Valor venda
+                    var valorVenda = obterValorVendaPara(compra.valor).toFixed("2");
+                    resultado.labels.push(valorVenda);
+                    resultado.datasets[1].data.push({
+                        x: valorVenda,
+                        y: volume
+                    });
+
                 }
             }
 
