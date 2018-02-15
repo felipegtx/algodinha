@@ -65,41 +65,44 @@ var AlgoDinha = function () {
         //////////////////////////////////////////////////////////////////////////
 
         /// Valor máximo para compra de BTC
-        valorMaximoCompra: 48000,
+        valorMaximoCompra: 35000,
 
         /// Valor mínimo para compra de BTC (base do túnel de negociação)
-        valorMinimoCompra: 30000,
+        valorMinimoCompra: 20000,
 
         /// Valor máximo que o robô está autorizado a gastar
-        maximoGastos: 0,
+        maximoGastos: 3000,
 
         /// Valor das ordens de compra enviadas pelo robô
-        valorOrdem: 9,
+        valorOrdem: 20,
 
         /// Valor máximo de cada ordem de compra. Se este valor for diferente do valor informado para "valorORdem", o rob^
         /// realizará um ajuste no valor pago, acrescentando o percentual de custo atual frente ao custo inicial por BTC até
         /// o limite de gastos definido aqui.
-        valorMaximoOrdem: 12,
+        valorMaximoOrdem: 25,
 
         /// Valor inicialmente depositado na corretora em fiat
-        valorInicial: 7307,
+        valorInicial: 3000,
 
         /// Threshold que define o momento de rebalanceamento do valor de saída
         ///     - O robô faz uma média ponderada com os valores das compras e utiliza esta informação para 
         ///       decidir a melhor hora para sair
-        thresholdRecompraEmBRL: 50,
+        thresholdRecompraEmBRL: 10,
 
         /// Lucro % esperado
         lucroEsperado: 0.01,
 
         //// Data da última venda realizada na plataforma
-        dataBase: "2017-12-19 11:15:21",
+        dataBase: "2018-02-15 18:49:00",
+
+        /// Se true, carrega todas as informações da carteira (todas as negociações já realizadas, limitado apenas pelo parametro `profundidadeBuscaCarteira` )
+        montarCarteiraCompleta: false,
 
         /// Caso queira que o robô ignore o valor `dataBase` e inicie uma carteira nova, altere este valor para `true`
         iniciaComprado: false,
 
         /// Habilita o robô para operar com venda/lucro parcial
-        vendaParcial: false
+        vendaParcial: true
 
         //////////////////////////////////////////////////////////////////////////
 
@@ -575,7 +578,7 @@ var AlgoDinha = function () {
                 for (var i = 0; i < tamanhoPagina; i++) {
                     var item = livro[i];
 
-                    if (new Date(item.Created) > dataBase) {
+                    if (params.montarCarteiraCompleta || (new Date(item.Created) > dataBase)) {
 
                         if (!item.Amount || isNaN(item.Amount) || (item.Amount == 0)) {
                             continue;
@@ -847,7 +850,7 @@ var AlgoDinha = function () {
         if (params.compras) {
 
             var compras = clone(params.compras).sort((a, b) => {
-                return a.valor == b.valor ? a.volume < b.volume ? -1 : 1 : a.valor < b.valor ? -1 : 1;
+                return a.valor < b.valor ? -1 : 1;
             });
 
             var resultado = {
@@ -952,7 +955,7 @@ var AlgoDinha = function () {
                 var o = params.book,
                     volumeTotal = obterVolumeTotal();
                 if (!o || !o.asks || !o.bids || !o.bids[0] || !o.asks[0] || isNaN(volumeTotal)) {
-                    return resultado.add("Deu ruim", true).add("");
+                    return resultado.add(`Deu ruim ${volumeTotal}`, true).add("");
                 }
 
                 var melhorOfertaCompraAtual = o.bids[0],
