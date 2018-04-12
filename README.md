@@ -146,7 +146,9 @@ Se você quiser acompanhar o status do robô enquanto estiver longe do seu servi
 Os logs são salvos em disco no caminho `./log/algodinha.txt`. Recomendo o uso do [Baretail free](https://www.baremetalsoft.com/baretail/) para acompanhar - inclusive disponibilizei no projeto um arquivo de preferências `baretail.udm` com o highlight dos pricipais eventos do log.
 
 ### Problemas conhecidos
- 
+Veja a lista com as issues [aqui](https://github.com/felipegtx/algodinha/issues).
+
+Os principais problemas, IMHO são os seguintes: 
   - **Demora na inicialização:** Em alguns momentos o snapshot do book pode demorar muito para chegar. É uma característica da infra da Blinktrade. Se isso acontecer com você (observável pela demora em iniciar o robô), basta reiniciar o robô.
   - **Reconexão:** O processo de reconexão ainda é bem arcaico. No estado atual, não recomendo que você deixe o robô executando sem supervisão.
   
