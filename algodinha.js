@@ -121,7 +121,8 @@ var AlgoDinha = function () {
         if (!params.instanciaWS || (params.offline && !params.iniciando)) {
             pln("Obtendo nova instância de WS");
             params.instanciaWS = new BlinkTradeWS({
-                prod: true
+                prod: true,
+                brokerId: 4
             })
         }
 
