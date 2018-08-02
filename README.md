@@ -2,17 +2,14 @@
 
 Algoritmo de negociação automatizada para Bitcoin - via Foxbit / [Blinktrade](https://github.com/blinktrade/BlinkTradeJS).
 
-### Importante:
-A FoxBit não utiliza mais a plataforma Blinktrade portanto este projeto não será mais atualizado. Manterei o REPO ativo para pessoas que querem estudar a estrutura de um Robô de negociação e/ou a implementação da estratégia de Scalper implementada aqui.
-
+:exclamation: **IMPORTANTE:**
+ - A FoxBit não utiliza mais a plataforma Blinktrade portanto este projeto não será mais atualizado. Manterei o REPO ativo para pessoas que querem estudar a estrutura de um Robô de negociação e/ou a implementação da estratégia de Scalper implementada aqui.
+ - Não me responsabilizo por qualquer tipo de dano e/ou prejuizo causado durante e/ou decorrente do uso desta ferramenta. 
+ - Lembre-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
+ 
 ## Sobre
 
 O robô executa a estratégia [Scalper](https://www.daytraderpro.com.br/blog/o-que-e-scalping/), visando a execução de um grande volume de ordens de compra e venda com pequenos lucros entre si. A materialização desta estratégia depende basicamente da forma com que você parametrizará a execução do robô, principalmente no que tange o % de lucro esperado em cada operação e os valores das ordens em si. 
-
-:exclamation: **IMPORTANTE:**
-
- - Não me responsabilizo por qualquer tipo de dano e/ou prejuizo causado durante e/ou decorrente do uso desta ferramenta. 
- - Lembre-se que [este repositório está disponível sob uma licença do tipo Apache 2.0](https://github.com/felipegtx/algodinha/blob/master/LICENSE).
 
 ## Instalando
 
